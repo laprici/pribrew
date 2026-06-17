@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Home, Coffee, Bean, Users, LogOut, Plus, Sun, Moon, SlidersHorizontal } from "lucide-react";
+import { Home, Coffee, Bean, Users, LogOut, Plus, Sun, Moon, SlidersHorizontal, BarChart3, Settings } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 
@@ -13,7 +13,11 @@ const NAV = [
 
 // Sidebar desktop incluye Moledores; el bottom-nav móvil es grid fijo (5 slots)
 // y se llega a moledores desde el inventario de granos.
-const SIDEBAR_EXTRA = [{ to: "/grinders", label: "Moledores", icon: SlidersHorizontal }] as const;
+const SIDEBAR_EXTRA = [
+  { to: "/grinders", label: "Moledores", icon: SlidersHorizontal },
+  { to: "/stats", label: "Estadísticas", icon: BarChart3 },
+  { to: "/settings", label: "Ajustes", icon: Settings },
+] as const;
 
 function ThemeToggle({ inline }: { inline?: boolean }) {
   const { theme, toggle } = useTheme();
@@ -107,8 +111,21 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             <img src="/icon.svg" alt="" className="h-7 w-7 rounded-md md:hidden" />
             <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
           </div>
-          <div className="md:hidden">
-            <ThemeToggle inline />
+          <div className="flex items-center gap-2 md:hidden">
+            <Link
+              to="/stats"
+              aria-label="Estadísticas"
+              className="grid h-10 w-10 place-items-center rounded-md border border-hairline text-ink transition-colors hover:bg-chip"
+            >
+              <BarChart3 size={19} />
+            </Link>
+            <Link
+              to="/settings"
+              aria-label="Ajustes"
+              className="grid h-10 w-10 place-items-center rounded-md border border-hairline text-ink transition-colors hover:bg-chip"
+            >
+              <Settings size={19} />
+            </Link>
           </div>
         </header>
 
