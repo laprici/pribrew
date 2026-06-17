@@ -1,0 +1,46 @@
+<!-- @dsCard group="Componentes (actuales)" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Botones — Pribrew</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 36px; background: #E8E1D2; color: #16120D;
+    font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  h1 { font-size: 18px; letter-spacing: -0.02em; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: #73695A; margin: 0 0 26px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+  .lbl { font-family: "JetBrains Mono", monospace; font-size: 0.6rem; text-transform: uppercase;
+    letter-spacing: 0.14em; color: #73695A; width: 100%; margin-bottom: -6px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 2px; padding: 10px 16px; border: none; cursor: pointer;
+    font-family: "JetBrains Mono", monospace; font-size: 0.7rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.12em; transition: background 0.15s; }
+  .btn-primary { background: #C2410C; color: #E8E1D2; }
+  .btn-primary:hover { background: #9A3412; }
+  .btn-ghost { border: 1px solid #C7BDA8; background: #F3EEE3; color: #16120D; }
+  .btn-ghost:hover { background: #E8E1D2; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .focus { outline: 2px solid #C2410C; outline-offset: 2px; }
+</style>
+</head>
+<body>
+  <h1>Botones — actuales</h1>
+  <p class="sub">.btn-primary / .btn-ghost — etiquetas de control: mono, mayúsculas, tracking. Radio 2px, sin sombra.</p>
+  <div class="row"><span class="lbl">Primary</span>
+    <button class="btn btn-primary">Guardar extracción</button>
+    <button class="btn btn-primary focus">Foco</button>
+    <button class="btn btn-primary" disabled>Disabled</button>
+  </div>
+  <div class="row"><span class="lbl">Ghost</span>
+    <button class="btn btn-ghost">Cancelar</button>
+    <button class="btn btn-ghost focus">Foco</button>
+    <button class="btn btn-ghost" disabled>Disabled</button>
+  </div>
+</body>
+</html>

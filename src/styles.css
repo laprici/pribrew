@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Pricofee — sistema de diseño "Espresso Premium" (dark-first)
+   Fuente de verdad de los tokens. Tailwind los consume por var().
+   ============================================================ */
+:root {
+  --radius: 18px;
+  --pad: 18px;
+  --gap: 14px;
+
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", system-ui, sans-serif;
+  --font-mono: "Martian Mono Variable", "Martian Mono", ui-monospace, monospace;
+}
+
+/* ---------- DARK (default) ---------- */
+:root,
+[data-theme="dark"] {
+  --bg: #131009;
+  --bg-2: #100d07;
+  --surface: #1c1810;
+  --surface-2: #241f16;
+  --elevate: #2b251a;
+  --ink: #f4eee1;
+  --ink-soft: #cfc6b4;
+  --muted: #908573;
+  --faint: #6a6151;
+  --hairline: rgba(244, 238, 225, 0.1);
+  --hairline-strong: rgba(244, 238, 225, 0.18);
+  --chip: rgba(244, 238, 225, 0.06);
+  --glow: rgba(232, 160, 76, 0.16);
+  --scrim: rgba(8, 6, 3, 0.72);
+  --shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.9), 0 2px 8px -4px rgba(0, 0, 0, 0.6);
+  --accent: #e8a04c;
+  --accent-press: #d4893a;
+  --accent-ink: #1a1206;
+  --signal: #67b79a;
+  --warn: #e0795b;
+  color-scheme: dark;
+}
+
+/* ---------- LIGHT ---------- */
+[data-theme="light"] {
+  --bg: #efe7d7;
+  --bg-2: #e7decb;
+  --surface: #faf5ec;
+  --surface-2: #f4ecdd;
+  --elevate: #ffffff;
+  --ink: #1c1610;
+  --ink-soft: #4a4135;
+  --muted: #847a68;
+  --faint: #a99c85;
+  --hairline: rgba(28, 22, 16, 0.12);
+  --hairline-strong: rgba(28, 22, 16, 0.2);
+  --chip: rgba(28, 22, 16, 0.05);
+  --glow: rgba(181, 101, 29, 0.14);
+  --scrim: rgba(40, 32, 22, 0.4);
+  --shadow: 0 16px 34px -22px rgba(60, 45, 25, 0.45), 0 2px 6px -3px rgba(60, 45, 25, 0.18);
+  --accent: #b5651d;
+  --accent-press: #99500f;
+  --accent-ink: #fbf6ec;
+  --signal: #2e7d5b;
+  --warn: #b5482c;
+  color-scheme: light;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-bg-2 text-ink antialiased;
+    font-family: var(--font-display);
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3 {
+    @apply tracking-tight;
+  }
+  /* Ocultar scrollbars — estética de app */
+  * {
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Firma: lecturas numéricas en mono con tabular-nums */
+  .readout {
+    @apply font-mono tabular-nums text-ink;
+    letter-spacing: -0.01em;
+  }
+  .readout-label,
+  .tag {
+    @apply font-mono text-[0.625rem] uppercase tracking-[0.18em] text-muted;
+  }
+  /* Tarjeta base: superficie + hairline + sombra suave + radio amplio */
+  .card {
+    @apply bg-surface border border-hairline rounded-lg shadow-card;
+  }
+  /* Botones como etiquetas de control: mono, mayúsculas, tracking */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-3
+           font-mono text-xs font-semibold uppercase tracking-[0.12em] transition-all
+           ease-ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+           focus-visible:ring-offset-2 focus-visible:ring-offset-bg-2 disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-accent-ink hover:bg-accent-press active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply btn border border-hairline-strong bg-transparent text-ink hover:bg-chip;
+  }
+  .field {
+    @apply w-full rounded-md border border-hairline-strong bg-surface-2 px-4 py-3 text-[0.95rem]
+           text-ink placeholder:text-faint
+           focus:border-accent focus:outline-none focus:ring-4 focus:ring-[var(--glow)];
+  }
+  .label {
+    @apply block font-mono text-[0.65rem] font-medium uppercase tracking-[0.14em] text-ink-soft mb-2;
+  }
+  /* Chip de nota de cata */
+  .chip-note {
+    @apply inline-flex items-center rounded-pill border border-hairline bg-chip
+           px-3 py-1.5 text-[0.8rem] text-ink-soft;
+  }
+}

@@ -1,0 +1,75 @@
+<!-- @dsCard group="Propuestas" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Formulario mejorado — Pribrew</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 36px; background: #E8E1D2; color: #16120D;
+    font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  h1 { font-size: 18px; letter-spacing: -0.02em; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: #73695A; margin: 0 0 24px; max-width: 60ch; line-height: 1.5; }
+  .card { background: #F3EEE3; border: 1px solid #C7BDA8; border-radius: 2px; padding: 24px; max-width: 400px; }
+  .label { display: flex; justify-content: space-between; align-items: baseline;
+    font-family: "JetBrains Mono", monospace; font-size: 0.65rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.12em; color: #73695A; margin-bottom: 6px; }
+  .opt { color: rgba(115,105,90,0.7); text-transform: none; letter-spacing: 0; }
+  .grp { margin-bottom: 18px; }
+  /* Input con unidad pegada — clave en un logbook de café */
+  .wrap { display: flex; align-items: stretch; border: 1px solid #C7BDA8; border-radius: 2px;
+    background: #F3EEE3; overflow: hidden; transition: border-color 0.12s, box-shadow 0.12s; }
+  .wrap:focus-within { border-color: #C2410C; box-shadow: 0 0 0 1px #C2410C; }
+  .wrap input { flex: 1; min-width: 0; border: none; background: transparent; outline: none;
+    padding: 10px 14px; font-size: 14px; color: #16120D; font-family: "JetBrains Mono", monospace;
+    font-variant-numeric: tabular-nums; }
+  .unit { display: flex; align-items: center; padding: 0 14px; background: #E8E1D2;
+    border-left: 1px solid #C7BDA8; font-family: "JetBrains Mono", monospace; font-size: 0.72rem; color: #73695A; }
+  .help { font-size: 11.5px; color: #73695A; margin-top: 6px; line-height: 1.4; }
+  /* Estado de error explícito */
+  .wrap.err { border-color: #9A3412; box-shadow: 0 0 0 1px #9A3412; }
+  .err-msg { font-size: 11.5px; color: #9A3412; margin-top: 6px; font-family: "JetBrains Mono", monospace; }
+  /* Ratio en vivo, derivado */
+  .derived { display: flex; align-items: baseline; gap: 10px; padding: 12px 14px; margin: 4px 0 20px;
+    background: #E8E1D2; border: 1px solid #C7BDA8; border-radius: 2px; }
+  .derived .k { font-family: "JetBrains Mono", monospace; font-size: 0.6rem; text-transform: uppercase;
+    letter-spacing: 0.16em; color: #73695A; }
+  .derived .v { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums;
+    font-size: 22px; color: #C2410C; margin-left: auto; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 2px; padding: 11px 16px; border: none; cursor: pointer; width: 100%;
+    font-family: "JetBrains Mono", monospace; font-size: 0.7rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.12em; background: #C2410C; color: #E8E1D2; }
+</style>
+</head>
+<body>
+  <h1>Formulario — propuesta</h1>
+  <p class="sub">Mejoras: <b>unidades pegadas</b> (g, &deg;C) para no ambiguar, valores numéricos en mono, <b>ratio derivado en vivo</b>, <b>texto de ayuda</b>, <b>estado de error</b> explícito y marca de campo opcional. Misma estética de instrumento.</p>
+  <form class="card" onsubmit="return false">
+    <div class="grp">
+      <label class="label" for="a">Café <span class="opt">opcional</span></label>
+      <div class="wrap"><input id="a" placeholder="Huila, Colombia" style="font-family:Inter,sans-serif"></div>
+    </div>
+    <div class="grp">
+      <label class="label" for="b">Dosis</label>
+      <div class="wrap"><input id="b" value="18.0"><span class="unit">g</span></div>
+      <div class="help">Café molido seco.</div>
+    </div>
+    <div class="grp">
+      <label class="label" for="c">Agua</label>
+      <div class="wrap"><input id="c" value="297"><span class="unit">g</span></div>
+    </div>
+    <div class="derived"><span class="k">Ratio</span><span class="v">1:16.5</span></div>
+    <div class="grp">
+      <label class="label" for="d">Temperatura</label>
+      <div class="wrap err"><input id="d" value="102"><span class="unit">&deg;C</span></div>
+      <div class="err-msg">Fuera de rango (85–100&nbsp;&deg;C)</div>
+    </div>
+    <button class="btn">Registrar extracción</button>
+  </form>
+</body>
+</html>

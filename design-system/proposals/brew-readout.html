@@ -1,0 +1,64 @@
+<!-- @dsCard group="Propuestas" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Ficha de extracción — Pribrew</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 36px; background: #E8E1D2; color: #16120D;
+    font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  h1 { font-size: 18px; letter-spacing: -0.02em; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: #73695A; margin: 0 0 24px; max-width: 60ch; line-height: 1.5; }
+  .card { background: #F3EEE3; border: 1px solid #C7BDA8; border-radius: 2px; max-width: 420px; overflow: hidden; }
+  .head { display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid #C7BDA8; }
+  .method { font-family: "JetBrains Mono", monospace; font-size: 0.62rem; text-transform: uppercase;
+    letter-spacing: 0.16em; color: #E8E1D2; background: #7C4A24; padding: 4px 9px; border-radius: 2px; }
+  .origin { font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
+  .when { font-family: "JetBrains Mono", monospace; font-size: 0.62rem; color: #73695A; }
+  /* Lectura protagonista: el ratio */
+  .hero { padding: 22px 20px; display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid #C7BDA8; }
+  .hero .k { font-family: "JetBrains Mono", monospace; font-size: 0.6rem; text-transform: uppercase;
+    letter-spacing: 0.16em; color: #73695A; }
+  .hero .v { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums;
+    font-size: 40px; font-weight: 500; letter-spacing: -0.02em; }
+  .hero .badge { margin-left: auto; font-family: "JetBrains Mono", monospace; font-size: 0.62rem;
+    color: #1C5C54; border: 1px solid #1C5C54; padding: 3px 8px; border-radius: 2px; }
+  /* Sub-lecturas en rejilla con separadores hairline */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .cell { padding: 16px 20px; border-right: 1px solid #C7BDA8; }
+  .cell:last-child { border-right: none; }
+  .cell .k { font-family: "JetBrains Mono", monospace; font-size: 0.6rem; text-transform: uppercase;
+    letter-spacing: 0.16em; color: #73695A; display: block; margin-bottom: 6px; }
+  .cell .v { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; font-size: 20px; }
+</style>
+</head>
+<body>
+  <h1>Ficha de extracción — propuesta</h1>
+  <p class="sub">Mejoras: <b>jerarquía numérica</b> clara (ratio protagonista), sub-lecturas en rejilla con separadores hairline, <b>etiqueta de método</b> y <b>badge de evaluación</b> con el color <code>signal</code>. Densa pero legible — estética de instrumento.</p>
+  <article class="card">
+    <div class="head">
+      <div>
+        <div class="origin">Huila · Geisha</div>
+        <div class="when">14 JUN 2026 · 14d post-tueste</div>
+      </div>
+      <span class="method">V60</span>
+    </div>
+    <div class="hero">
+      <span class="k">Ratio</span>
+      <span class="v">1:16.5</span>
+      <span class="badge">Equilibrado</span>
+    </div>
+    <div class="grid">
+      <div class="cell"><span class="k">Dosis</span><span class="v">18.0 g</span></div>
+      <div class="cell"><span class="k">Temp</span><span class="v">93&deg;C</span></div>
+      <div class="cell"><span class="k">Tiempo</span><span class="v">3:12</span></div>
+    </div>
+  </article>
+</body>
+</html>

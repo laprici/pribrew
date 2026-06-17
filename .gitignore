@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.tanstack/
+
+# generated route tree
+src/routeTree.gen.ts
+
+# env
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# supabase local
+supabase/.branches/
+supabase/.temp/
+
+# stale lockfile (repo uses pnpm)
+package-lock.json
