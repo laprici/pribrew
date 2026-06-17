@@ -41,6 +41,19 @@ export function useBrew(id: string | undefined) {
   });
 }
 
+/** Fila cruda (sin joins) para prellenar el formulario de edición. */
+export function useBrewRow(id: string | undefined) {
+  return useQuery({
+    enabled: !!id,
+    queryKey: ["brews", "row", id],
+    queryFn: async (): Promise<Record<string, any> | null> => {
+      const { data, error } = await supabase.from("brews").select("*").eq("id", id!).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 export function useCreateBrew() {
   const qc = useQueryClient();
   return useMutation({
@@ -52,6 +65,31 @@ export function useCreateBrew() {
         .single();
       if (error) throw error;
       return data.id as string;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["brews"] }),
+  });
+}
+
+export function useUpdateBrew() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, input }: { id: string; input: BrewInput }): Promise<void> => {
+      const { error } = await supabase.from("brews").update(input).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { id }) => {
+      qc.invalidateQueries({ queryKey: ["brews"] });
+      qc.invalidateQueries({ queryKey: ["brews", "row", id] });
+    },
+  });
+}
+
+export function useDeleteBrew() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      const { error } = await supabase.from("brews").delete().eq("id", id);
+      if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["brews"] }),
   });

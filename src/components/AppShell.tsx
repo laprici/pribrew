@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Home, Coffee, Bean, Users, LogOut, Plus, Sun, Moon } from "lucide-react";
+import { Home, Coffee, Bean, Users, LogOut, Plus, Sun, Moon, SlidersHorizontal } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 
@@ -10,6 +10,10 @@ const NAV = [
   { to: "/beans", label: "Granos", icon: Bean },
   { to: "/groups", label: "Grupos", icon: Users },
 ] as const;
+
+// Sidebar desktop incluye Moledores; el bottom-nav móvil es grid fijo (5 slots)
+// y se llega a moledores desde el inventario de granos.
+const SIDEBAR_EXTRA = [{ to: "/grinders", label: "Moledores", icon: SlidersHorizontal }] as const;
 
 function ThemeToggle({ inline }: { inline?: boolean }) {
   const { theme, toggle } = useTheme();
@@ -60,6 +64,17 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         </div>
         <nav className="flex flex-col gap-1">
           {NAV.map(({ to, label, icon: Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors ${
+                isActive(to) ? "bg-accent text-accent-ink font-medium" : "text-ink-soft hover:bg-chip"
+              }`}
+            >
+              <Icon size={18} /> {label}
+            </Link>
+          ))}
+          {SIDEBAR_EXTRA.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
               to={to}

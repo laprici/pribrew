@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Check, Flame, Repeat, Thermometer, Clock, Settings2 } from "lucide-react";
+import { ArrowLeft, Check, Flame, Repeat, Pencil, Thermometer, Clock, Settings2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import {
   Card,
@@ -190,9 +190,17 @@ function DetailPage() {
           </Card>
         )}
 
-        <button onClick={() => navigate({ to: "/brews/new" })} className="btn-primary w-full">
-          <Repeat size={17} /> Repetir
-        </button>
+        <div className="flex gap-2.5">
+          <button onClick={() => navigate({ to: "/brews/new" })} className="btn-primary flex-1">
+            <Repeat size={17} /> Repetir
+          </button>
+          <button
+            onClick={() => navigate({ to: "/brews/$brewId/edit", params: { brewId } })}
+            className="btn-ghost flex-1"
+          >
+            <Pencil size={16} /> Editar
+          </button>
+        </div>
       </div>
     </AppShell>
   );
