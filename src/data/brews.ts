@@ -3,22 +3,36 @@ import { supabase } from "@/lib/supabase";
 import { toBrewVM, type BrewVM } from "@/domain/view";
 import type { BrewInput } from "@/domain/brew.schema";
 
-// Join a grano + método; las relaciones a-uno se devuelven como objeto anidado.
+// Join a grano + método + receta (con sus pasos/plantilla); las relaciones
+// a-uno se devuelven como objeto anidado.
 const BREW_SELECT = `
   id, brewed_at, created_at, dose_g, yield_g, water_temp_c, total_time_s, grind_setting,
-  method_params, rating, acidity, sweetness, bitterness, body, aftertaste, outcome_tags, notes,
+  rating, acidity, sweetness, bitterness, body, aftertaste, outcome_tags, notes,
+  receta_id, bean_id, grinder_id,
   bean:beans ( id, name, origin_country, region, variety, process, roast_level, roast_date, roaster_notes, remaining_g, weight_g, created_at ),
-  method:methods ( id, key, name, default_ratio, default_temp_c )
+  method:methods ( id, key, name, default_ratio, default_temp_c ),
+  receta:recetas ( id, name, method_params, steps, default_dose_g, default_ratio, method:methods ( id, key, name, default_ratio, default_temp_c ) )
 `;
 
-export function useBrews() {
+/** Filtros opcionales para la lista de extracciones (server-side, FKs indexadas). */
+export type BrewFilters = {
+  recetaId?: string;
+  methodId?: string;
+  beanId?: string;
+  grinderId?: string;
+};
+
+export function useBrews(filters: BrewFilters = {}) {
+  const { recetaId, methodId, beanId, grinderId } = filters;
   return useQuery({
-    queryKey: ["brews"],
+    queryKey: ["brews", { recetaId, methodId, beanId, grinderId }],
     queryFn: async (): Promise<BrewVM[]> => {
-      const { data, error } = await supabase
-        .from("brews")
-        .select(BREW_SELECT)
-        .order("brewed_at", { ascending: false });
+      let q = supabase.from("brews").select(BREW_SELECT);
+      if (recetaId) q = q.eq("receta_id", recetaId);
+      if (methodId) q = q.eq("method_id", methodId);
+      if (beanId) q = q.eq("bean_id", beanId);
+      if (grinderId) q = q.eq("grinder_id", grinderId);
+      const { data, error } = await q.order("brewed_at", { ascending: false });
       if (error) throw error;
       return (data ?? []).map(toBrewVM);
     },

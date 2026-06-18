@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Pribrew — a coffee-extraction logbook (bitácora de extracción). Multi-user, where recipes/beans are **shared per group**. PWA (web sidebar / mobile bottom-nav, installable). The codebase and UI copy are in **Spanish**; keep new user-facing strings, comments, and commit messages in Spanish to match.
+Pribrew — a coffee-extraction logbook (bitácora de extracción). Multi-user, where recipes/beans are **shared per group**. PWA (web sidebar / mobile bottom-nav, installable). The codebase and UI copy are in **Spanish**; keep new user-facing strings and comments in Spanish to match. **Commit messages**, however, are written in **English** (Conventional Commits, brief, no `Co-Authored-By` trailer).
 
 ## Commands
 

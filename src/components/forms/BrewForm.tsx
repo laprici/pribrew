@@ -1,96 +1,49 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui";
-import { Field, NumInput, Pills, Select, Toggle, FormScaffold } from "@/components/form";
+import { Field, NumInput, Pills, FormScaffold } from "@/components/form";
+import { StepsReadout } from "@/components/StepsReadout";
 import { useBeans } from "@/data/beans";
-import { useMethods } from "@/data/methods";
 import { useGrinders } from "@/data/grinders";
+import { useRecetas, useRecetaRow } from "@/data/recetas";
 import { useBrewRow, useCreateBrew, useUpdateBrew, useDeleteBrew } from "@/data/brews";
 import { brewSchema } from "@/domain/brew.schema";
-import type { MethodKey } from "@/domain/method";
+import { scaleSteps } from "@/domain/view";
+import type { BrewStep } from "@/domain/receta.schema";
 
-/* Campos específicos por método — reflejan el discriminatedUnion de
-   brew.schema.ts (method_params). El form los muestra según el método activo. */
-type PField =
-  | { key: string; label: string; kind: "num"; unit?: string }
-  | { key: string; label: string; kind: "bool" }
-  | { key: string; label: string; kind: "enum"; options: { value: string; label: string }[] };
-
-const METHOD_FIELDS: Record<MethodKey, PField[]> = {
-  espresso: [
-    { key: "pressure_bar", label: "Presión", kind: "num", unit: "bar" },
-    { key: "preinfusion_s", label: "Preinfusión", kind: "num", unit: "s" },
-    { key: "basket_size_g", label: "Canasta", kind: "num", unit: "g" },
-  ],
-  v60: [
-    { key: "bloom_water_g", label: "Agua bloom", kind: "num", unit: "g" },
-    { key: "bloom_time_s", label: "Tiempo bloom", kind: "num", unit: "s" },
-    { key: "pours", label: "Vertidos", kind: "num" },
-    { key: "swirl", label: "Swirl", kind: "bool" },
-  ],
-  aeropress: [
-    { key: "inverted", label: "Invertida", kind: "bool" },
-    { key: "steep_time_s", label: "Reposo", kind: "num", unit: "s" },
-    { key: "plunge_time_s", label: "Prensado", kind: "num", unit: "s" },
-    { key: "bypass_g", label: "Bypass", kind: "num", unit: "g" },
-  ],
-  french_press: [
-    { key: "steep_time_s", label: "Reposo", kind: "num", unit: "s" },
-    { key: "break_crust", label: "Romper costra", kind: "bool" },
-  ],
-  moka: [
-    {
-      key: "heat_level",
-      label: "Fuego",
-      kind: "enum",
-      options: [
-        { value: "low", label: "Bajo" },
-        { value: "medium", label: "Medio" },
-        { value: "high", label: "Alto" },
-      ],
-    },
-    { key: "prewarmed_water", label: "Agua precalentada", kind: "bool" },
-  ],
-  cold_brew: [
-    { key: "steep_hours", label: "Reposo", kind: "num", unit: "h" },
-    { key: "in_fridge", label: "En nevera", kind: "bool" },
-    { key: "concentrate_ratio", label: "Ratio concentrado", kind: "num" },
-  ],
-  cold_drip: [
-    { key: "drops_per_min", label: "Gotas/min", kind: "num" },
-    { key: "total_drip_hours", label: "Goteo total", kind: "num", unit: "h" },
-  ],
+/** Valores opcionales para pre-sembrar el form (p. ej. al «Repetir»). */
+export type BrewFormInitial = {
+  recetaId?: string;
+  beanId?: string;
+  grinderId?: string;
+  dose?: string;
 };
 
-const numOrUndef = (s: unknown) => {
-  const n = parseFloat(String(s));
-  return Number.isFinite(n) ? n : undefined;
-};
-
-export function BrewForm({ brewId }: { brewId?: string }) {
+export function BrewForm({ brewId, initial }: { brewId?: string; initial?: BrewFormInitial }) {
   const navigate = useNavigate();
   const editing = !!brewId;
   const { data: beans = [] } = useBeans();
-  const { data: methods = [] } = useMethods();
   const { data: grinders = [] } = useGrinders();
+  const { data: recetas = [] } = useRecetas();
   const { data: row } = useBrewRow(brewId);
+
+  const [recetaId, setRecetaId] = useState<string | null>(initial?.recetaId ?? null);
+  const { data: recetaRow } = useRecetaRow(recetaId ?? undefined);
+
   const createBrew = useCreateBrew();
   const updateBrew = useUpdateBrew();
   const deleteBrew = useDeleteBrew();
 
-  const [beanId, setBeanId] = useState<string | null>(null);
-  const [methodId, setMethodId] = useState<string | null>(null);
-  const [grinderId, setGrinderId] = useState<string | null>(null);
-  const [dose, setDose] = useState("18");
-  const [water, setWater] = useState("297");
-  const [temp, setTemp] = useState("93");
+  const [beanId, setBeanId] = useState<string | null>(initial?.beanId ?? null);
+  const [grinderId, setGrinderId] = useState<string | null>(initial?.grinderId ?? null);
+  const [dose, setDose] = useState(initial?.dose ?? "");
+  const [water, setWater] = useState("");
+  const [temp, setTemp] = useState("");
   const [time, setTime] = useState("");
-  const [grind, setGrind] = useState("22");
+  const [grind, setGrind] = useState("");
   const [rating, setRating] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
-  // Parámetros específicos del método (clave → string|boolean).
-  const [mparams, setMparams] = useState<Record<string, string | boolean>>({});
   const [err, setErr] = useState<string | null>(null);
 
   // Defaults una vez cargan catálogos (solo en creación).
@@ -98,19 +51,17 @@ export function BrewForm({ brewId }: { brewId?: string }) {
     if (!editing && beanId === null && beans.length) setBeanId(beans[0].id);
   }, [editing, beans, beanId]);
   useEffect(() => {
-    if (!editing && methodId === null && methods.length) {
-      setMethodId(methods.find((m) => m.key === "v60")?.id ?? methods[0].id);
-    }
-  }, [editing, methods, methodId]);
-  useEffect(() => {
     if (!editing && grinderId === null && grinders.length) setGrinderId(grinders[0].id);
   }, [editing, grinders, grinderId]);
+  useEffect(() => {
+    if (!editing && recetaId === null && recetas.length) setRecetaId(recetas[0].id);
+  }, [editing, recetas, recetaId]);
 
   // Prellenar en edición.
   useEffect(() => {
     if (!row) return;
+    setRecetaId(row.receta_id ?? null);
     setBeanId(row.bean_id ?? null);
-    setMethodId(row.method_id ?? null);
     setGrinderId(row.grinder_id ?? null);
     setDose(row.dose_g != null ? String(row.dose_g) : "");
     setWater(row.yield_g != null ? String(row.yield_g) : "");
@@ -119,16 +70,21 @@ export function BrewForm({ brewId }: { brewId?: string }) {
     setGrind(row.grind_setting ?? "");
     setRating(row.rating ?? null);
     setNotes(row.notes ?? "");
-    const mp = { ...(row.method_params ?? {}) };
-    delete mp.method;
-    const norm: Record<string, string | boolean> = {};
-    for (const [k, v] of Object.entries(mp)) norm[k] = typeof v === "boolean" ? v : String(v);
-    setMparams(norm);
   }, [row]);
 
-  const method = methods.find((m) => m.id === methodId);
-  const methodKey = method?.key as MethodKey | undefined;
-  const fields = methodKey ? METHOD_FIELDS[methodKey] ?? [] : [];
+  // Al elegir receta, prerellena dosis/temp/agua desde sus defaults (solo si vacíos).
+  useEffect(() => {
+    if (!recetaRow) return;
+    setDose((d) => (d ? d : recetaRow.default_dose_g != null ? String(recetaRow.default_dose_g) : d));
+    setTemp((t) => (t ? t : recetaRow.default_temp_c != null ? String(recetaRow.default_temp_c) : t));
+    setWater((w) => {
+      if (w) return w;
+      if (recetaRow.default_dose_g != null && recetaRow.default_ratio != null) {
+        return String(Math.round(recetaRow.default_dose_g * recetaRow.default_ratio));
+      }
+      return w;
+    });
+  }, [recetaRow]);
 
   const grinder = grinders.find((g) => g.id === grinderId);
   const grindUnit = grinder?.unit_label || "μm";
@@ -139,33 +95,24 @@ export function BrewForm({ brewId }: { brewId?: string }) {
   const ratio = d > 0 ? w / d : 0;
   const tempErr = t && (t < 80 || t > 100) ? "Fuera de rango habitual (80–100 °C)" : null;
 
-  const setParam = (k: string, v: string | boolean) => setMparams((p) => ({ ...p, [k]: v }));
-
-  function buildMethodParams(key: MethodKey) {
-    const out: Record<string, unknown> = { method: key };
-    for (const f of METHOD_FIELDS[key]) {
-      const raw = mparams[f.key];
-      if (f.kind === "num") {
-        const n = numOrUndef(raw);
-        if (n !== undefined) out[f.key] = n;
-      } else if (f.kind === "bool") {
-        if (raw === true) out[f.key] = true;
-      } else {
-        if (raw) out[f.key] = raw;
-      }
-    }
-    return out;
-  }
+  // Pasos de la receta, reescalados al agua real de esta extracción (modo lectura).
+  const recetaSteps: BrewStep[] = Array.isArray(recetaRow?.steps) ? recetaRow!.steps : [];
+  const recetaWater =
+    recetaRow?.default_dose_g && recetaRow?.default_ratio
+      ? recetaRow.default_dose_g * recetaRow.default_ratio
+      : 0;
+  const previewSteps = scaleSteps(recetaSteps, recetaWater, w);
 
   async function handleSave() {
     setErr(null);
-    if (!method) {
-      setErr("Selecciona un método.");
+    if (!recetaRow?.method_id) {
+      setErr("Selecciona una receta.");
       return;
     }
     const parsed = brewSchema.safeParse({
+      receta_id: recetaRow.id,
+      method_id: recetaRow.method_id,
       bean_id: beanId,
-      method_id: method.id,
       grinder_id: grinderId,
       grind_setting: grind.trim() || undefined,
       dose_g: d || undefined,
@@ -173,7 +120,6 @@ export function BrewForm({ brewId }: { brewId?: string }) {
       water_temp_c: t || undefined,
       total_time_s: time.trim() ? Math.round(parseFloat(time)) : undefined,
       rating: rating ?? undefined,
-      method_params: buildMethodParams(method.key as MethodKey),
       outcome_tags: [],
       notes: notes.trim() || undefined,
     });
@@ -213,6 +159,24 @@ export function BrewForm({ brewId }: { brewId?: string }) {
         onDelete={editing ? handleDelete : undefined}
         deleting={deleteBrew.isPending}
       >
+        {/* receta — base de la extracción (fija método y pasos) */}
+        <Field
+          label="Receta"
+          help={recetas.length === 0 ? "Sin recetas todavía — crea una primero." : undefined}
+        >
+          {recetas.length === 0 ? (
+            <Link to="/recetas/new" className="btn-ghost w-full justify-center">
+              Crear receta
+            </Link>
+          ) : (
+            <Pills
+              value={recetaId}
+              onChange={(id) => id && setRecetaId(id)}
+              options={recetas.map((r) => ({ value: r.id, label: r.name }))}
+            />
+          )}
+        </Field>
+
         {/* grano */}
         <Field label="Grano" help={beans.length === 0 ? "Sin granos en el inventario — se guardará sin grano." : undefined}>
           <div className="-mx-0.5 flex gap-2 overflow-x-auto pb-1">
@@ -235,15 +199,6 @@ export function BrewForm({ brewId }: { brewId?: string }) {
               );
             })}
           </div>
-        </Field>
-
-        {/* método */}
-        <Field label="Método">
-          <Pills
-            value={methodId}
-            onChange={(id) => id && setMethodId(id)}
-            options={methods.map((m) => ({ value: m.id, label: m.name }))}
-          />
         </Field>
 
         {/* moledor */}
@@ -305,46 +260,22 @@ export function BrewForm({ brewId }: { brewId?: string }) {
           <NumInput value={time} onChange={setTime} unit="s" />
         </Field>
 
-        {/* parámetros específicos del método */}
-        {fields.length > 0 && (
+        {/* pasos de la receta — solo lectura, escalados a la dosis */}
+        {previewSteps.length > 0 && (
           <div className="mb-4 rounded-lg border border-hairline bg-surface-2 p-3.5">
-            <div className="tag mb-3">Parámetros · {method?.name}</div>
-            <div className="grid grid-cols-2 gap-3.5">
-              {fields.map((f) => {
-                if (f.kind === "bool") {
-                  return (
-                    <div key={f.key} className="flex items-end pb-1">
-                      <Toggle
-                        label={f.label}
-                        checked={mparams[f.key] === true}
-                        onChange={(v) => setParam(f.key, v)}
-                      />
-                    </div>
-                  );
-                }
-                if (f.kind === "enum") {
-                  return (
-                    <Field key={f.key} label={f.label} opt>
-                      <Select
-                        value={(mparams[f.key] as string) || ""}
-                        onChange={(v) => setParam(f.key, v)}
-                        options={f.options}
-                        placeholder="—"
-                      />
-                    </Field>
-                  );
-                }
-                return (
-                  <Field key={f.key} label={f.label} opt>
-                    <NumInput
-                      value={(mparams[f.key] as string) ?? ""}
-                      onChange={(v) => setParam(f.key, v)}
-                      unit={f.unit}
-                    />
-                  </Field>
-                );
-              })}
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="tag">Pasos de la receta</span>
+              {recetaId && (
+                <Link
+                  to="/recetas/$recetaId/edit"
+                  params={{ recetaId }}
+                  className="mono text-[10px] uppercase tracking-[0.1em] text-accent hover:underline"
+                >
+                  Editar receta
+                </Link>
+              )}
             </div>
+            <StepsReadout steps={previewSteps} />
           </div>
         )}
 

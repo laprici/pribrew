@@ -3,6 +3,7 @@
    (color desde el tueste, score desde rating, target desde el método). */
 
 import { METHOD_LABELS, type MethodKey } from "./method";
+import type { BrewStep } from "./brew.schema";
 
 export type BrewTarget = {
   ratioLow: number;
@@ -27,6 +28,8 @@ export type BeanVM = {
 export type BrewVM = {
   id: string;
   bean: BeanVM | null;
+  recetaId: string | null;
+  recetaName: string | null;
   method: string;
   methodKey: string;
   date: string;
@@ -39,6 +42,19 @@ export type BrewVM = {
   verdict: string;
   notes: string;
   target: BrewTarget;
+  steps: BrewStep[];
+};
+
+export type RecetaVM = {
+  id: string;
+  name: string;
+  method: string;
+  methodKey: string;
+  stepCount: number;
+  defaultDose: number | null;
+  defaultRatio: number | null;
+  defaultTemp: number | null;
+  notes: string;
 };
 
 const PROCESS_LABELS: Record<string, string> = {
@@ -126,25 +142,73 @@ function targetFor(methodRow: any, methodKey: string): BrewTarget {
 
 export function toBrewVM(r: any): BrewVM {
   const bean = r.bean ? toBeanVM(r.bean) : null;
-  const methodKey: string = r.method?.key ?? r.method_params?.method ?? "";
+  const receta = r.receta ?? null;
+  const methodKey: string =
+    r.method?.key ?? receta?.method?.key ?? receta?.method_params?.method ?? "";
   const methodLabel =
     r.method?.name ?? METHOD_LABELS[methodKey as MethodKey] ?? (methodKey || "—");
+  const dose = Number(r.dose_g ?? 0);
+  const water = Number(r.yield_g ?? 0);
+  const recetaSteps: BrewStep[] = Array.isArray(receta?.steps) ? receta.steps : [];
+  const recetaWater =
+    receta?.default_dose_g && receta?.default_ratio
+      ? Number(receta.default_dose_g) * Number(receta.default_ratio)
+      : 0;
   return {
     id: r.id,
     bean,
+    recetaId: receta?.id ?? null,
+    recetaName: receta?.name ?? null,
     method: methodLabel,
     methodKey,
     date: r.brewed_at ?? r.created_at ?? "",
-    dose: Number(r.dose_g ?? 0),
-    water: Number(r.yield_g ?? 0),
+    dose,
+    water,
     temp: Number(r.water_temp_c ?? 0),
     grind: r.grind_setting ?? "—",
     timeSec: Number(r.total_time_s ?? 0),
     score: scoreFromRow(r),
     verdict: verdictFromRow(r),
     notes: r.notes ?? "",
-    target: targetFor(r.method, methodKey),
+    target: targetFor(r.method ?? receta?.method, methodKey),
+    // pasos de la receta, reescalados al agua real de la extracción
+    steps: scaleSteps(recetaSteps, recetaWater, water),
   };
+}
+
+export function toRecetaVM(r: any): RecetaVM {
+  const methodKey: string = r.method?.key ?? r.method_params?.method ?? "";
+  const methodLabel =
+    r.method?.name ?? METHOD_LABELS[methodKey as MethodKey] ?? (methodKey || "—");
+  return {
+    id: r.id,
+    name: r.name ?? "Receta",
+    method: methodLabel,
+    methodKey,
+    stepCount: Array.isArray(r.steps) ? r.steps.length : 0,
+    defaultDose: r.default_dose_g != null ? Number(r.default_dose_g) : null,
+    defaultRatio: r.default_ratio != null ? Number(r.default_ratio) : null,
+    defaultTemp: r.default_temp_c != null ? Number(r.default_temp_c) : null,
+    notes: r.notes ?? "",
+  };
+}
+
+/** Reescala el agua acumulada de cada paso al agua total real de la extracción.
+   Si falta la referencia de la receta (dosis×ratio) o el agua actual, deja los
+   gramos tal cual. Reutiliza la misma idea proporcional que buildSteps(). */
+export function scaleSteps(
+  steps: BrewStep[],
+  recetaTotalWater: number,
+  currentTotalWater: number
+): BrewStep[] {
+  if (!Array.isArray(steps) || steps.length === 0) return [];
+  if (recetaTotalWater <= 0 || currentTotalWater <= 0 || recetaTotalWater === currentTotalWater) {
+    return steps;
+  }
+  const factor = currentTotalWater / recetaTotalWater;
+  return steps.map((s) =>
+    s.water_to != null ? { ...s, water_to: Math.round(s.water_to * factor) } : s
+  );
 }
 
 /** Días desde una fecha ISO (acepta solo-fecha o fecha-hora). */

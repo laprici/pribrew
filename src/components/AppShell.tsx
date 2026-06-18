@@ -1,19 +1,20 @@
 import { type ReactNode, useEffect } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Home, Coffee, Bean, Users, LogOut, Plus, Sun, Moon, SlidersHorizontal, BarChart3, Settings } from "lucide-react";
+import { Home, Coffee, Bean, Users, LogOut, Plus, Sun, Moon, SlidersHorizontal, BarChart3, Settings, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 
 const NAV = [
   { to: "/", label: "Bitácora", icon: Home },
-  { to: "/brews", label: "Recetas", icon: Coffee },
+  { to: "/recetas", label: "Recetas", icon: BookOpen },
+  { to: "/brews", label: "Extracciones", icon: Coffee },
   { to: "/beans", label: "Granos", icon: Bean },
-  { to: "/groups", label: "Grupos", icon: Users },
 ] as const;
 
-// Sidebar desktop incluye Moledores; el bottom-nav móvil es grid fijo (5 slots)
-// y se llega a moledores desde el inventario de granos.
+// Sidebar desktop incluye Grupos/Moledores; el bottom-nav móvil es grid fijo
+// (5 slots: 4 de NAV + FAB central) y el resto vive en el sidebar.
 const SIDEBAR_EXTRA = [
+  { to: "/groups", label: "Grupos", icon: Users },
   { to: "/grinders", label: "Moledores", icon: SlidersHorizontal },
   { to: "/stats", label: "Estadísticas", icon: BarChart3 },
   { to: "/settings", label: "Ajustes", icon: Settings },

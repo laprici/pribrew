@@ -43,9 +43,11 @@ export function BrewCard({ brew }: { brew: BrewVM }) {
               <span className="tag text-faint">{fmtDate(brew.date)}</span>
             </div>
             <div className="mb-0.5 truncate text-lg font-semibold leading-tight tracking-[-0.02em]">
+              {brew.recetaName ?? brew.method}
+            </div>
+            <div className="tag text-muted">
               {bean ? `${bean.origin} · ${bean.variety}` : "Sin grano"}
             </div>
-            <div className="tag text-muted">{bean?.country ?? "—"}</div>
           </div>
           <ScoreRing score={brew.score} />
         </div>

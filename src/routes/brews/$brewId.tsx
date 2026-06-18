@@ -16,6 +16,7 @@ import {
 } from "@/components/ui";
 import { useBrew } from "@/data/brews";
 import { daysSince } from "@/domain/view";
+import { StepsReadout } from "@/components/StepsReadout";
 
 export const Route = createFileRoute("/brews/$brewId")({
   component: DetailPage,
@@ -131,10 +132,15 @@ function DetailPage() {
             className="pointer-events-none absolute inset-0"
             style={{ background: "radial-gradient(120% 90% at 85% 0%, var(--glow), transparent 60%)" }}
           />
-          <div className="relative mb-3.5 flex items-center gap-2.5">
+          <div className="relative mb-3.5 flex flex-wrap items-center gap-2.5">
             <MethodBadge method={brew.method} />
+            {brew.recetaName && (
+              <span className="text-[13px] font-semibold tracking-[-0.01em] text-ink">
+                {brew.recetaName}
+              </span>
+            )}
             <span
-              className="tag inline-flex items-center gap-1"
+              className="tag ml-auto inline-flex items-center gap-1"
               style={{ color: ratioOk ? "var(--signal)" : "var(--warn)" }}
             >
               {ratioOk ? <Check size={12} /> : <Flame size={12} />} {brew.verdict}
@@ -176,6 +182,14 @@ function DetailPage() {
           </p>
         </Card>
 
+        {/* pasos de la receta */}
+        {brew.steps.length > 0 && (
+          <Card className="mb-3.5">
+            <div className="tag mb-3">Pasos de la receta</div>
+            <StepsReadout steps={brew.steps} />
+          </Card>
+        )}
+
         {/* grano */}
         {bean && (
           <Card className="mb-4 flex items-center gap-3.5">
@@ -191,7 +205,19 @@ function DetailPage() {
         )}
 
         <div className="flex gap-2.5">
-          <button onClick={() => navigate({ to: "/brews/new" })} className="btn-primary flex-1">
+          <button
+            onClick={() =>
+              navigate({
+                to: "/brews/new",
+                search: {
+                  receta: brew.recetaId ?? undefined,
+                  bean: brew.bean?.id,
+                  dose: brew.dose ? String(brew.dose) : undefined,
+                },
+              })
+            }
+            className="btn-primary flex-1"
+          >
             <Repeat size={17} /> Repetir
           </button>
           <button

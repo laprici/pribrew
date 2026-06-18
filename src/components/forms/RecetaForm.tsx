@@ -1,0 +1,388 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { AppShell } from "@/components/AppShell";
+import { Field, NumInput, Pills, Select, Toggle, TextInput, FormScaffold } from "@/components/form";
+import { useMethods } from "@/data/methods";
+import { useRecetaRow, useCreateReceta, useUpdateReceta, useDeleteReceta } from "@/data/recetas";
+import { recetaSchema } from "@/domain/receta.schema";
+import type { MethodKey } from "@/domain/method";
+import { buildSteps, parseClock, fmtClock } from "@/domain/methodSteps";
+import { Trash2, Plus } from "lucide-react";
+
+/* Campos específicos por método — reflejan el discriminatedUnion de
+   receta.schema.ts (method_params). El form los muestra según el método activo. */
+type PField =
+  | { key: string; label: string; kind: "num"; unit?: string }
+  | { key: string; label: string; kind: "bool" }
+  | { key: string; label: string; kind: "enum"; options: { value: string; label: string }[] };
+
+const METHOD_FIELDS: Record<MethodKey, PField[]> = {
+  espresso: [
+    { key: "pressure_bar", label: "Presión", kind: "num", unit: "bar" },
+    { key: "preinfusion_s", label: "Preinfusión", kind: "num", unit: "s" },
+    { key: "basket_size_g", label: "Canasta", kind: "num", unit: "g" },
+  ],
+  v60: [
+    { key: "bloom_water_g", label: "Agua bloom", kind: "num", unit: "g" },
+    { key: "bloom_time_s", label: "Tiempo bloom", kind: "num", unit: "s" },
+    { key: "pours", label: "Vertidos", kind: "num" },
+    { key: "swirl", label: "Swirl", kind: "bool" },
+  ],
+  aeropress: [
+    { key: "inverted", label: "Invertida", kind: "bool" },
+    { key: "steep_time_s", label: "Reposo", kind: "num", unit: "s" },
+    { key: "plunge_time_s", label: "Prensado", kind: "num", unit: "s" },
+    { key: "bypass_g", label: "Bypass", kind: "num", unit: "g" },
+  ],
+  french_press: [
+    { key: "steep_time_s", label: "Reposo", kind: "num", unit: "s" },
+    { key: "break_crust", label: "Romper costra", kind: "bool" },
+  ],
+  moka: [
+    {
+      key: "heat_level",
+      label: "Fuego",
+      kind: "enum",
+      options: [
+        { value: "low", label: "Bajo" },
+        { value: "medium", label: "Medio" },
+        { value: "high", label: "Alto" },
+      ],
+    },
+    { key: "prewarmed_water", label: "Agua precalentada", kind: "bool" },
+  ],
+  cold_brew: [
+    { key: "steep_hours", label: "Reposo", kind: "num", unit: "h" },
+    { key: "in_fridge", label: "En nevera", kind: "bool" },
+    { key: "concentrate_ratio", label: "Ratio concentrado", kind: "num" },
+  ],
+  cold_drip: [
+    { key: "drops_per_min", label: "Gotas/min", kind: "num" },
+    { key: "total_drip_hours", label: "Goteo total", kind: "num", unit: "h" },
+  ],
+};
+
+// Fila editable de paso: tiempo y agua como texto hasta validar al guardar.
+type StepDraft = { at: string; water: string; note: string };
+
+const numOrUndef = (s: unknown) => {
+  const n = parseFloat(String(s));
+  return Number.isFinite(n) ? n : undefined;
+};
+
+export function RecetaForm({ recetaId }: { recetaId?: string }) {
+  const navigate = useNavigate();
+  const editing = !!recetaId;
+  const { data: methods = [] } = useMethods();
+  const { data: row } = useRecetaRow(recetaId);
+  const createReceta = useCreateReceta();
+  const updateReceta = useUpdateReceta();
+  const deleteReceta = useDeleteReceta();
+
+  const [name, setName] = useState("");
+  const [methodId, setMethodId] = useState<string | null>(null);
+  const [defDose, setDefDose] = useState("18");
+  const [defRatio, setDefRatio] = useState("16.5");
+  const [defTemp, setDefTemp] = useState("93");
+  const [notes, setNotes] = useState("");
+  // Parámetros específicos del método (clave → string|boolean).
+  const [mparams, setMparams] = useState<Record<string, string | boolean>>({});
+  // Pasos de la receta (editables). `at` se escribe como mm:ss / s / Xh.
+  const [steps, setSteps] = useState<StepDraft[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+
+  // Default de método en creación.
+  useEffect(() => {
+    if (!editing && methodId === null && methods.length) {
+      setMethodId(methods.find((m) => m.key === "v60")?.id ?? methods[0].id);
+    }
+  }, [editing, methods, methodId]);
+
+  // Prellenar en edición.
+  useEffect(() => {
+    if (!row) return;
+    setName(row.name ?? "");
+    setMethodId(row.method_id ?? null);
+    setDefDose(row.default_dose_g != null ? String(row.default_dose_g) : "");
+    setDefRatio(row.default_ratio != null ? String(row.default_ratio) : "");
+    setDefTemp(row.default_temp_c != null ? String(row.default_temp_c) : "");
+    setNotes(row.notes ?? "");
+    const mp = { ...(row.method_params ?? {}) };
+    delete mp.method;
+    const norm: Record<string, string | boolean> = {};
+    for (const [k, v] of Object.entries(mp)) norm[k] = typeof v === "boolean" ? v : String(v);
+    setMparams(norm);
+    const rowSteps = Array.isArray(row.steps) ? row.steps : [];
+    setSteps(
+      rowSteps.map((s: any) => ({
+        at: typeof s.at === "number" ? fmtClock(s.at) : "",
+        water: s.water_to != null ? String(s.water_to) : "",
+        note: s.note ?? "",
+      }))
+    );
+  }, [row]);
+
+  const method = methods.find((m) => m.id === methodId);
+  const methodKey = method?.key as MethodKey | undefined;
+  const fields = methodKey ? METHOD_FIELDS[methodKey] ?? [] : [];
+
+  // Agua total de referencia = dosis × ratio (para escalar la plantilla).
+  const refWater = (parseFloat(defDose) || 0) * (parseFloat(defRatio) || 0);
+
+  const setParam = (k: string, v: string | boolean) => setMparams((p) => ({ ...p, [k]: v }));
+
+  const addStep = () => setSteps((s) => [...s, { at: "", water: "", note: "" }]);
+  const removeStep = (i: number) => setSteps((s) => s.filter((_, idx) => idx !== i));
+  const updateStep = (i: number, patch: Partial<StepDraft>) =>
+    setSteps((s) => s.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
+  // Rellena los pasos con la receta de referencia del método como punto de partida.
+  const loadTemplate = () => {
+    if (!methodKey) return;
+    setSteps(
+      buildSteps(methodKey, refWater).map((s) => ({
+        at: s.time,
+        water: s.waterTo != null ? String(s.waterTo) : "",
+        note: s.note,
+      }))
+    );
+  };
+
+  /** Drafts → pasos válidos: requieren tiempo; se ordenan por tiempo. */
+  function buildStepsPayload() {
+    return steps
+      .map((s) => {
+        const at = parseClock(s.at);
+        if (at == null) return null;
+        const water = numOrUndef(s.water);
+        const note = s.note.trim();
+        return { at, water_to: water ?? null, note: note || null };
+      })
+      .filter((s): s is { at: number; water_to: number | null; note: string | null } => s !== null)
+      .sort((a, b) => a.at - b.at);
+  }
+
+  function buildMethodParams(key: MethodKey) {
+    const out: Record<string, unknown> = { method: key };
+    for (const f of METHOD_FIELDS[key]) {
+      const raw = mparams[f.key];
+      if (f.kind === "num") {
+        const n = numOrUndef(raw);
+        if (n !== undefined) out[f.key] = n;
+      } else if (f.kind === "bool") {
+        if (raw === true) out[f.key] = true;
+      } else {
+        if (raw) out[f.key] = raw;
+      }
+    }
+    return out;
+  }
+
+  async function handleSave() {
+    setErr(null);
+    if (!method) {
+      setErr("Selecciona un método.");
+      return;
+    }
+    const parsed = recetaSchema.safeParse({
+      name: name.trim(),
+      method_id: method.id,
+      method_params: buildMethodParams(method.key as MethodKey),
+      steps: buildStepsPayload(),
+      default_dose_g: numOrUndef(defDose),
+      default_ratio: numOrUndef(defRatio),
+      default_temp_c: numOrUndef(defTemp),
+      notes: notes.trim() || undefined,
+    });
+    if (!parsed.success) {
+      setErr(parsed.error.issues[0]?.message ?? "Datos inválidos.");
+      return;
+    }
+    try {
+      if (editing) await updateReceta.mutateAsync({ id: recetaId!, input: parsed.data });
+      else await createReceta.mutateAsync(parsed.data);
+      navigate({ to: "/recetas" });
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "No se pudo guardar la receta.");
+    }
+  }
+
+  async function handleDelete() {
+    if (!recetaId) return;
+    try {
+      await deleteReceta.mutateAsync(recetaId);
+      navigate({ to: "/recetas" });
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "No se pudo borrar la receta.");
+    }
+  }
+
+  return (
+    <AppShell title={editing ? "Editar receta" : "Nueva receta"}>
+      <FormScaffold
+        title={editing ? "Editar" : "Crear"}
+        sub="Receta"
+        onBack={() => navigate({ to: "/recetas" })}
+        onSave={handleSave}
+        saving={createReceta.isPending || updateReceta.isPending}
+        saveLabel={editing ? "Guardar cambios" : "Guardar receta"}
+        error={err}
+        onDelete={editing ? handleDelete : undefined}
+        deleting={deleteReceta.isPending}
+      >
+        {/* nombre — valor principal de la receta */}
+        <Field label="Nombre" help="Ej. «V60 dulce», «Espresso clásico».">
+          <TextInput value={name} onChange={setName} placeholder="V60 dulce" />
+        </Field>
+
+        {/* método */}
+        <Field label="Método">
+          <Pills
+            value={methodId}
+            onChange={(id) => id && setMethodId(id)}
+            options={methods.map((m) => ({ value: m.id, label: m.name }))}
+          />
+        </Field>
+
+        {/* defaults que prerellenan la extracción */}
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="Dosis" opt>
+            <NumInput value={defDose} onChange={setDefDose} unit="g" />
+          </Field>
+          <Field label="Ratio" opt help="1:N">
+            <NumInput value={defRatio} onChange={setDefRatio} />
+          </Field>
+          <Field label="Temp" opt>
+            <NumInput value={defTemp} onChange={setDefTemp} unit="°C" />
+          </Field>
+        </div>
+
+        {/* parámetros específicos del método */}
+        {fields.length > 0 && (
+          <div className="mb-4 rounded-lg border border-hairline bg-surface-2 p-3.5">
+            <div className="tag mb-3">Parámetros · {method?.name}</div>
+            <div className="grid grid-cols-2 gap-3.5">
+              {fields.map((f) => {
+                if (f.kind === "bool") {
+                  return (
+                    <div key={f.key} className="flex items-end pb-1">
+                      <Toggle
+                        label={f.label}
+                        checked={mparams[f.key] === true}
+                        onChange={(v) => setParam(f.key, v)}
+                      />
+                    </div>
+                  );
+                }
+                if (f.kind === "enum") {
+                  return (
+                    <Field key={f.key} label={f.label} opt>
+                      <Select
+                        value={(mparams[f.key] as string) || ""}
+                        onChange={(v) => setParam(f.key, v)}
+                        options={f.options}
+                        placeholder="—"
+                      />
+                    </Field>
+                  );
+                }
+                return (
+                  <Field key={f.key} label={f.label} opt>
+                    <NumInput
+                      value={(mparams[f.key] as string) ?? ""}
+                      onChange={(v) => setParam(f.key, v)}
+                      unit={f.unit}
+                    />
+                  </Field>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* pasos de la receta — editables (tiempo · agua acumulada · instrucción) */}
+        <div className="mb-4 rounded-lg border border-hairline bg-surface-2 p-3.5">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <span className="tag">Pasos de la receta</span>
+            {methodKey && (
+              <button
+                type="button"
+                onClick={loadTemplate}
+                className="mono text-[10px] uppercase tracking-[0.1em] text-accent hover:underline"
+              >
+                Cargar plantilla {method?.name}
+              </button>
+            )}
+          </div>
+
+          {steps.length === 0 ? (
+            <p className="mb-3 text-[13px] leading-snug text-muted">
+              Sin pasos. Añade tu secuencia (p. ej. 0:00 → 40 g bloom, 0:45 → 180 g…) o carga una plantilla.
+            </p>
+          ) : (
+            <div className="mb-3 flex flex-col gap-2">
+              {/* cabeceras */}
+              <div className="mono flex items-center gap-2 px-0.5 text-[9px] uppercase tracking-[0.1em] text-faint">
+                <span className="w-16 flex-none">Tiempo</span>
+                <span className="w-20 flex-none">Agua (g)</span>
+                <span className="flex-1">Instrucción</span>
+                <span className="w-7 flex-none" />
+              </div>
+              {steps.map((s, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    value={s.at}
+                    onChange={(e) => updateStep(i, { at: e.target.value })}
+                    placeholder="0:45"
+                    inputMode="numeric"
+                    className="field mono w-16 flex-none px-2 py-2 text-center text-[13px]"
+                  />
+                  <input
+                    value={s.water}
+                    onChange={(e) => updateStep(i, { water: e.target.value })}
+                    placeholder="180"
+                    inputMode="decimal"
+                    className="field mono w-20 flex-none px-2 py-2 text-center text-[13px]"
+                  />
+                  <input
+                    value={s.note}
+                    onChange={(e) => updateStep(i, { note: e.target.value })}
+                    placeholder="Bloom, 2.º vertido, prensar…"
+                    className="field flex-1 px-3 py-2 text-[13px]"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeStep(i)}
+                    aria-label="Quitar paso"
+                    className="grid h-9 w-7 flex-none place-items-center rounded-md text-faint transition-colors hover:text-warn"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={addStep}
+            className="mono flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-hairline-strong py-2.5 text-[11px] uppercase tracking-[0.1em] text-ink-soft transition-colors hover:bg-chip"
+          >
+            <Plus size={15} /> Añadir paso
+          </button>
+        </div>
+
+        <Field label="Notas" opt help="Detalles de la receta (no de una cata concreta).">
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+            placeholder="Objetivo de taza, trucos, ajustes recomendados…"
+            className="field resize-none leading-relaxed"
+            style={{ fontFamily: "var(--font-display)" }}
+          />
+        </Field>
+      </FormScaffold>
+    </AppShell>
+  );
+}

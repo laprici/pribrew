@@ -4,7 +4,9 @@
 -- Asume el esquema `auth` de Supabase (auth.users, auth.uid()).
 -- ============================================================
 
-create extension if not exists pgcrypto;  -- gen_random_bytes para tokens
+-- En Supabase las extensiones viven en el schema `extensions`; fijarlo
+-- garantiza que gen_random_bytes resuelva en cloud y local.
+create extension if not exists pgcrypto with schema extensions;  -- gen_random_bytes para tokens
 
 -- ───────── Tipos enumerados ─────────
 create type process_type     as enum ('washed','natural','honey','anaerobic','other');
@@ -33,7 +35,7 @@ create table group_members (
 create table group_invitations (
   id          uuid primary key default gen_random_uuid(),
   group_id    uuid not null references groups(id) on delete cascade,
-  token       text not null unique default encode(gen_random_bytes(16),'hex'),
+  token       text not null unique default encode(extensions.gen_random_bytes(16),'hex'),
   created_by  uuid not null references auth.users(id) default auth.uid(),
   expires_at  timestamptz,             -- null = sin expiración
   max_uses    int,                     -- null = ilimitado
