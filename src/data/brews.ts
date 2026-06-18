@@ -8,7 +8,7 @@ import type { BrewInput } from "@/domain/brew.schema";
 const BREW_SELECT = `
   id, brewed_at, created_at, dose_g, yield_g, water_temp_c, total_time_s, grind_setting,
   rating, acidity, sweetness, bitterness, body, aftertaste, outcome_tags, notes,
-  receta_id, bean_id, grinder_id,
+  owner_id, receta_id, bean_id, grinder_id,
   bean:beans ( id, name, origin_country, region, variety, process, roast_level, roast_date, roaster_notes, remaining_g, weight_g, created_at ),
   method:methods ( id, key, name, default_ratio, default_temp_c ),
   receta:recetas ( id, name, method_params, steps, default_dose_g, default_ratio, method:methods ( id, key, name, default_ratio, default_temp_c ) )

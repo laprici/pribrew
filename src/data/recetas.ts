@@ -5,7 +5,7 @@ import type { RecetaInput } from "@/domain/receta.schema";
 
 // Join al método para mostrar etiqueta y derivar defaults.
 const RECETA_SELECT = `
-  id, name, method_id, method_params, steps, default_dose_g, default_ratio,
+  id, owner_id, name, method_id, method_params, steps, default_dose_g, default_ratio,
   default_temp_c, notes, created_at,
   method:methods ( id, key, name, default_ratio, default_temp_c )
 `;

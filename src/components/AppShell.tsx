@@ -1,23 +1,29 @@
 import { type ReactNode, useEffect } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Home, Coffee, Bean, Users, LogOut, Plus, Sun, Moon, SlidersHorizontal, BarChart3, Settings, BookOpen } from "lucide-react";
+import { Home, Coffee, Users, LogOut, Plus, Sun, Moon, BarChart3, Settings, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 
 const NAV = [
   { to: "/", label: "Bitácora", icon: Home },
   { to: "/recetas", label: "Recetas", icon: BookOpen },
-  { to: "/brews", label: "Extracciones", icon: Coffee },
-  { to: "/beans", label: "Granos", icon: Bean },
+  { to: "/brews", label: "Historial", icon: Coffee },
 ] as const;
 
-// Sidebar desktop incluye Grupos/Moledores; el bottom-nav móvil es grid fijo
-// (5 slots: 4 de NAV + FAB central) y el resto vive en el sidebar.
+// Granos/Moledores ya no viven en el nav: se gestionan desde Ajustes.
 const SIDEBAR_EXTRA = [
   { to: "/groups", label: "Grupos", icon: Users },
-  { to: "/grinders", label: "Moledores", icon: SlidersHorizontal },
   { to: "/stats", label: "Estadísticas", icon: BarChart3 },
   { to: "/settings", label: "Ajustes", icon: Settings },
+] as const;
+
+// Bottom-nav móvil: grid fijo de 5 (4 ítems + FAB central). Grupos solo es
+// accesible aquí en móvil (Stats/Ajustes viven en los iconos del header).
+const MOBILE_NAV = [
+  { to: "/", label: "Bitácora", icon: Home },
+  { to: "/recetas", label: "Recetas", icon: BookOpen },
+  { to: "/brews", label: "Historial", icon: Coffee },
+  { to: "/groups", label: "Grupos", icon: Users },
 ] as const;
 
 function ThemeToggle({ inline }: { inline?: boolean }) {
@@ -62,7 +68,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
   return (
     <div className="min-h-dvh bg-bg-2 md:grid md:grid-cols-[15rem_1fr]">
       {/* Sidebar — solo desktop */}
-      <aside className="hidden border-r border-hairline bg-surface px-3 py-5 md:flex md:flex-col md:gap-1">
+      <aside className="hidden border-r border-hairline bg-surface px-3 py-5 md:sticky md:top-0 md:flex md:h-dvh md:flex-col md:gap-1 md:overflow-y-auto">
         <div className="flex items-center gap-2 px-3 pb-5">
           <img src="/icon.svg" alt="" className="h-7 w-7 rounded-md" />
           <span className="font-semibold tracking-tight">Pribrew</span>
@@ -91,7 +97,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             </Link>
           ))}
         </nav>
-        <Link to="/brews/new" className="btn-primary mt-4">
+        <Link to="/recetas" className="btn-primary mt-4">
           <Plus size={17} /> Nueva extracción
         </Link>
         <div className="mt-auto flex items-center gap-2 pt-4">
@@ -142,13 +148,13 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
           paddingTop: "0.5rem",
         }}
       >
-        {NAV.slice(0, 2).map(({ to, label, icon: Icon }) => (
+        {MOBILE_NAV.slice(0, 2).map(({ to, label, icon: Icon }) => (
           <NavTab key={to} to={to} label={label} Icon={Icon} active={isActive(to)} />
         ))}
         {/* FAB central */}
         <div className="grid place-items-center">
           <Link
-            to="/brews/new"
+            to="/recetas"
             aria-label="Nueva extracción"
             className="-mt-7 grid place-items-center rounded-pill border-4 border-surface bg-accent text-accent-ink shadow-glow"
             style={{ height: 52, width: 52 }}
@@ -156,7 +162,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             <Plus size={24} strokeWidth={2.4} />
           </Link>
         </div>
-        {NAV.slice(2).map(({ to, label, icon: Icon }) => (
+        {MOBILE_NAV.slice(2).map(({ to, label, icon: Icon }) => (
           <NavTab key={to} to={to} label={label} Icon={Icon} active={isActive(to)} />
         ))}
       </nav>

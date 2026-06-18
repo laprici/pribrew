@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Plus, Search, ListChecks } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, MethodBadge, ScreenHeader } from "@/components/ui";
+import { Author } from "@/components/Author";
 import { useRecetas } from "@/data/recetas";
 
 export const Route = createFileRoute("/recetas/")({
@@ -60,15 +61,18 @@ function RecetasPage() {
             {filtered.map((r) => (
               <Card
                 key={r.id}
-                onClick={() => navigate({ to: "/recetas/$recetaId/edit", params: { recetaId: r.id } })}
+                onClick={() => navigate({ to: "/recetas/$recetaId", params: { recetaId: r.id } })}
                 className="flex items-center gap-3.5"
               >
                 <div className="min-w-0 flex-1">
                   <div className="mb-1.5 flex items-center gap-2">
                     <MethodBadge method={r.method} />
-                    <span className="mono inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-faint">
-                      <ListChecks size={12} /> {r.stepCount} pasos
-                    </span>
+                    {r.stepCount > 0 && (
+                      <span className="mono inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-faint">
+                        <ListChecks size={12} /> {r.stepCount} pasos
+                      </span>
+                    )}
+                    <Author ownerId={r.ownerId} hideMine />
                   </div>
                   <div className="truncate text-[18px] font-semibold tracking-[-0.02em]">{r.name}</div>
                   {(r.defaultDose != null || r.defaultRatio != null || r.defaultTemp != null) && (

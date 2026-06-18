@@ -5,8 +5,8 @@ import { z } from "zod";
 const espressoParams = z.object({
   method: z.literal("espresso"),
   pressure_bar: z.number().min(1).max(15).optional(),
-  preinfusion_s: z.number().min(0).max(30).optional(),
-  basket_size_g: z.number().optional(),
+  preinfusion: z.boolean().optional(),
+  shot_time_s: z.number().optional(),
 });
 
 const v60Params = z.object({

@@ -27,6 +27,7 @@ export type BeanVM = {
 
 export type BrewVM = {
   id: string;
+  ownerId: string;
   bean: BeanVM | null;
   recetaId: string | null;
   recetaName: string | null;
@@ -47,6 +48,7 @@ export type BrewVM = {
 
 export type RecetaVM = {
   id: string;
+  ownerId: string;
   name: string;
   method: string;
   methodKey: string;
@@ -156,6 +158,7 @@ export function toBrewVM(r: any): BrewVM {
       : 0;
   return {
     id: r.id,
+    ownerId: r.owner_id ?? "",
     bean,
     recetaId: receta?.id ?? null,
     recetaName: receta?.name ?? null,
@@ -182,6 +185,7 @@ export function toRecetaVM(r: any): RecetaVM {
     r.method?.name ?? METHOD_LABELS[methodKey as MethodKey] ?? (methodKey || "—");
   return {
     id: r.id,
+    ownerId: r.owner_id ?? "",
     name: r.name ?? "Receta",
     method: methodLabel,
     methodKey,

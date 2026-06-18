@@ -1,6 +1,6 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { Plus, X } from "lucide-react";
+import { X } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { BrewCard } from "@/components/BrewCard";
 import { Card, ScreenHeader } from "@/components/ui";
@@ -44,17 +44,9 @@ function BrewsPage() {
   const hasFilters = !!(search.receta || search.method || search.bean || search.grinder);
 
   return (
-    <AppShell title="Extracciones">
+    <AppShell title="Historial">
       <div className="mx-auto max-w-2xl">
-        <ScreenHeader
-          sub="Historial"
-          title="Extracciones"
-          right={
-            <Link to="/brews/new" className="btn-primary">
-              <Plus size={16} /> Nueva
-            </Link>
-          }
-        />
+        <ScreenHeader sub="Extracciones" title="Historial" />
 
         {/* filtros */}
         <div className="mb-3.5 grid grid-cols-2 gap-2 sm:grid-cols-4">

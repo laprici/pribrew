@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { BrewVM } from "@/domain/view";
 import { Card, MethodBadge, ScoreRing, fmtRatio, fmtTime, fmtDate } from "@/components/ui";
+import { Author } from "@/components/Author";
 
 function MiniCell({
   k,
@@ -41,6 +42,7 @@ export function BrewCard({ brew }: { brew: BrewVM }) {
             <div className="mb-2 flex items-center gap-2">
               <MethodBadge method={brew.method} />
               <span className="tag text-faint">{fmtDate(brew.date)}</span>
+              <Author ownerId={brew.ownerId} hideMine />
             </div>
             <div className="mb-0.5 truncate text-lg font-semibold leading-tight tracking-[-0.02em]">
               {brew.recetaName ?? brew.method}

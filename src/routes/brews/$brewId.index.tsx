@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Check, Flame, Repeat, Pencil, Thermometer, Clock, Settings2 } from "lucide-react";
+import { ArrowLeft, Check, Flame, Repeat, Pencil, Thermometer, Clock, Settings2, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import {
   Card,
@@ -14,11 +15,13 @@ import {
   ratioVal,
   type Tone,
 } from "@/components/ui";
-import { useBrew } from "@/data/brews";
+import { useBrew, useDeleteBrew } from "@/data/brews";
 import { daysSince } from "@/domain/view";
 import { StepsReadout } from "@/components/StepsReadout";
+import { Author } from "@/components/Author";
+import { useAuth } from "@/lib/auth";
 
-export const Route = createFileRoute("/brews/$brewId")({
+export const Route = createFileRoute("/brews/$brewId/")({
   component: DetailPage,
 });
 
@@ -77,7 +80,21 @@ function TargetRow({
 function DetailPage() {
   const navigate = useNavigate();
   const { brewId } = Route.useParams();
+  const { session } = useAuth();
   const { data: brew, isLoading } = useBrew(brewId);
+  const deleteBrew = useDeleteBrew();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [delErr, setDelErr] = useState<string | null>(null);
+
+  async function handleDelete() {
+    setDelErr(null);
+    try {
+      await deleteBrew.mutateAsync(brewId);
+      navigate({ to: "/brews" });
+    } catch (e) {
+      setDelErr(e instanceof Error ? e.message : "No se pudo borrar la extracción.");
+    }
+  }
 
   if (isLoading) {
     return (
@@ -105,6 +122,7 @@ function DetailPage() {
   const ratioOk = r >= tgt.ratioLow && r <= tgt.ratioHigh;
   const tempOk = brew.temp >= tgt.tempLow && brew.temp <= tgt.tempHigh;
   const days = bean ? daysSince(bean.roastDate) : 0;
+  const isMine = !!session && brew.ownerId === session.user.id;
 
   return (
     <AppShell title="Extracción">
@@ -118,7 +136,10 @@ function DetailPage() {
             <ArrowLeft size={20} />
           </button>
           <div className="min-w-0 flex-1">
-            <div className="tag mb-1">{fmtDate(brew.date)}</div>
+            <div className="mb-1 flex items-center gap-2">
+              <span className="tag">{fmtDate(brew.date)}</span>
+              <Author ownerId={brew.ownerId} />
+            </div>
             <h1 className="truncate text-xl font-semibold leading-tight tracking-[-0.02em]">
               {bean ? `${bean.origin} · ${bean.variety}` : "Sin grano"}
             </h1>
@@ -220,13 +241,48 @@ function DetailPage() {
           >
             <Repeat size={17} /> Repetir
           </button>
-          <button
-            onClick={() => navigate({ to: "/brews/$brewId/edit", params: { brewId } })}
-            className="btn-ghost flex-1"
-          >
-            <Pencil size={16} /> Editar
-          </button>
+          {isMine && (
+            <button
+              onClick={() => navigate({ to: "/brews/$brewId/edit", params: { brewId } })}
+              className="btn-ghost flex-1"
+            >
+              <Pencil size={16} /> Editar
+            </button>
+          )}
         </div>
+
+        {/* eliminar — con confirmación en dos pasos (solo el dueño) */}
+        {isMine && (
+        <div className="mt-2.5">
+          {confirmDelete ? (
+            <div className="flex items-center gap-2.5">
+              <span className="flex-1 text-[13px] text-muted">¿Eliminar esta extracción?</span>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleteBrew.isPending}
+                className="btn-ghost"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteBrew.isPending}
+                className="btn-ghost text-warn disabled:opacity-60"
+              >
+                <Trash2 size={16} /> {deleteBrew.isPending ? "Borrando…" : "Eliminar"}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="btn-ghost w-full justify-center text-warn"
+            >
+              <Trash2 size={16} /> Eliminar extracción
+            </button>
+          )}
+          {delErr && <div className="mono mt-2 text-[12px] text-warn">{delErr}</div>}
+        </div>
+        )}
       </div>
     </AppShell>
   );

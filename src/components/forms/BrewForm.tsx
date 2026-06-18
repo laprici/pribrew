@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { Card } from "@/components/ui";
+import { Card, MethodBadge } from "@/components/ui";
 import { Field, NumInput, Pills, FormScaffold } from "@/components/form";
 import { StepsReadout } from "@/components/StepsReadout";
 import { useBeans } from "@/data/beans";
 import { useGrinders } from "@/data/grinders";
-import { useRecetas, useRecetaRow } from "@/data/recetas";
+import { useRecetaRow } from "@/data/recetas";
 import { useBrewRow, useCreateBrew, useUpdateBrew, useDeleteBrew } from "@/data/brews";
 import { brewSchema } from "@/domain/brew.schema";
 import { scaleSteps } from "@/domain/view";
@@ -25,7 +25,6 @@ export function BrewForm({ brewId, initial }: { brewId?: string; initial?: BrewF
   const editing = !!brewId;
   const { data: beans = [] } = useBeans();
   const { data: grinders = [] } = useGrinders();
-  const { data: recetas = [] } = useRecetas();
   const { data: row } = useBrewRow(brewId);
 
   const [recetaId, setRecetaId] = useState<string | null>(initial?.recetaId ?? null);
@@ -53,9 +52,10 @@ export function BrewForm({ brewId, initial }: { brewId?: string; initial?: BrewF
   useEffect(() => {
     if (!editing && grinderId === null && grinders.length) setGrinderId(grinders[0].id);
   }, [editing, grinders, grinderId]);
+  // Recipe-first: la extracción nace desde una receta. Sin receta → elegir una.
   useEffect(() => {
-    if (!editing && recetaId === null && recetas.length) setRecetaId(recetas[0].id);
-  }, [editing, recetas, recetaId]);
+    if (!editing && !recetaId) navigate({ to: "/recetas" });
+  }, [editing, recetaId, navigate]);
 
   // Prellenar en edición.
   useEffect(() => {
@@ -159,23 +159,13 @@ export function BrewForm({ brewId, initial }: { brewId?: string; initial?: BrewF
         onDelete={editing ? handleDelete : undefined}
         deleting={deleteBrew.isPending}
       >
-        {/* receta — base de la extracción (fija método y pasos) */}
-        <Field
-          label="Receta"
-          help={recetas.length === 0 ? "Sin recetas todavía — crea una primero." : undefined}
-        >
-          {recetas.length === 0 ? (
-            <Link to="/recetas/new" className="btn-ghost w-full justify-center">
-              Crear receta
-            </Link>
-          ) : (
-            <Pills
-              value={recetaId}
-              onChange={(id) => id && setRecetaId(id)}
-              options={recetas.map((r) => ({ value: r.id, label: r.name }))}
-            />
-          )}
-        </Field>
+        {/* receta — base de la extracción (fija método y pasos), elegida antes de llegar aquí */}
+        {recetaRow && (
+          <Card className="mb-4 flex items-center gap-3 bg-surface-2">
+            <MethodBadge method={recetaRow.method?.name ?? "—"} />
+            <span className="text-[15px] font-semibold tracking-[-0.01em]">{recetaRow.name}</span>
+          </Card>
+        )}
 
         {/* grano */}
         <Field label="Grano" help={beans.length === 0 ? "Sin granos en el inventario — se guardará sin grano." : undefined}>
