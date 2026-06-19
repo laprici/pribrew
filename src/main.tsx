@@ -10,6 +10,7 @@ import "./styles.css";
 import { routeTree } from "./routeTree.gen";
 import { queryClient } from "./lib/queryClient";
 import { AuthProvider } from "./lib/auth";
+import { ConfirmProvider } from "./components/ConfirmDialog";
 import { applyStoredTheme } from "./lib/theme";
 
 // Fija el tema antes del primer render para evitar parpadeo.
@@ -27,7 +28,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <RouterProvider router={router} />
+        <ConfirmProvider>
+          <RouterProvider router={router} />
+        </ConfirmProvider>
       </AuthProvider>
     </QueryClientProvider>
   </StrictMode>

@@ -16,18 +16,68 @@ export function useMyGroups() {
   });
 }
 
+export type GroupMemberRow = {
+  user_id: string;
+  username: string | null;
+  role: "owner" | "admin" | "member";
+  is_creator: boolean;
+  joined_at: string;
+};
+
 export function useGroupMembers(groupId: string | undefined) {
   return useQuery({
     enabled: !!groupId,
     queryKey: ["group_members", groupId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("group_members")
-        .select("group_id, user_id, role, joined_at")
-        .eq("group_id", groupId!);
+    queryFn: async (): Promise<GroupMemberRow[]> => {
+      const { data, error } = await supabase.rpc("list_group_members", { g: groupId! });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as GroupMemberRow[];
     },
+  });
+}
+
+/** Salir de un grupo: borra la propia membresía. */
+export function useLeaveGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ groupId, userId }: { groupId: string; userId: string }) => {
+      const { error } = await supabase
+        .from("group_members")
+        .delete()
+        .eq("group_id", groupId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries(),
+  });
+}
+
+/** Expulsar a un miembro (sólo el creador). */
+export function useRemoveMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ groupId, userId }: { groupId: string; userId: string }) => {
+      const { error } = await supabase
+        .from("group_members")
+        .delete()
+        .eq("group_id", groupId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { groupId }) =>
+      qc.invalidateQueries({ queryKey: ["group_members", groupId] }),
+  });
+}
+
+/** Eliminar el grupo entero (sólo el creador). */
+export function useDeleteGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (groupId: string) => {
+      const { error } = await supabase.from("groups").delete().eq("id", groupId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries(),
   });
 }
 
