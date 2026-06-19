@@ -144,8 +144,10 @@ max_catalogs = 2
 # [storage.analytics.buckets.my-warehouse]
 
 # Store vector embeddings in S3 for large and durable datasets
+# Vector buckets requieren plan de pago; deshabilitado para que `config push` no
+# falle con 402 en el plan free (no usamos esta función).
 [storage.vector]
-enabled = true
+enabled = false
 max_buckets = 10
 max_indexes = 5
 
@@ -156,11 +158,12 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://localhost:5173"
+site_url = "https://pribrew.app.laprici.dev"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:5173"]
+# Producción primero (usado por el enlace de confirmación del correo) + localhost para dev.
+additional_redirect_urls = ["https://pribrew.app.laprici.dev", "http://localhost:5173"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -242,8 +245,14 @@ host = "smtp.resend.com"
 port = 465
 user = "resend"
 pass = "env(RESEND_API_KEY)"
-admin_email = "contacto@email.laprici.dev"
-sender_name = "Contacto"
+admin_email = "no-reply@email.laprici.dev"
+sender_name = "PriBrew"
+
+# Plantilla del correo de confirmación de registro. El HTML debe incluir la
+# variable {{ .ConfirmationURL }} en el botón para que el enlace funcione.
+[auth.email.template.confirmation]
+subject = "Confirma tu correo en PriBrew"
+content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
