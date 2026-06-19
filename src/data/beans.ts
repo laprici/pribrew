@@ -50,6 +50,42 @@ export function useCreateBean() {
   });
 }
 
+/** Adopta un grano compartido: clona solo su identidad descriptiva a un grano
+   privado mío (owner_id default auth.uid()). Reinicia los campos de tanda física
+   (fechas/peso/precio) y no copia los shares → nace privado. Lee la fila CRUDA
+   (no el BeanVM, cuyo process/roast son labels) para no romper el enum del schema. */
+export function useCloneBean() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (sourceId: string): Promise<string> => {
+      const { data: src, error: readErr } = await supabase
+        .from("beans")
+        .select("*")
+        .eq("id", sourceId)
+        .maybeSingle();
+      if (readErr) throw readErr;
+      if (!src) throw new Error("No se encontró el grano a copiar.");
+      const copy: Partial<BeanInput> = {
+        name: src.name,
+        origin_country: src.origin_country ?? undefined,
+        region: src.region ?? undefined,
+        producer: src.producer ?? undefined,
+        variety: src.variety ?? undefined,
+        process: src.process ?? undefined,
+        roast_level: src.roast_level ?? undefined,
+        roaster: src.roaster ?? undefined,
+        roaster_notes: src.roaster_notes ?? undefined,
+        altitude_masl: src.altitude_masl ?? undefined,
+        currency: src.currency ?? undefined,
+      };
+      const { data, error } = await supabase.from("beans").insert(copy).select("id").single();
+      if (error) throw error;
+      return data.id as string;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["beans"] }),
+  });
+}
+
 export function useUpdateBean() {
   const qc = useQueryClient();
   return useMutation({

@@ -79,6 +79,40 @@ export function useCreateGrinder() {
   });
 }
 
+/** Adopta un moledor compartido: clona su identidad a un moledor privado mío
+   (owner_id default auth.uid()). No copia los shares → nace privado. Lee la fila
+   cruda; los moledores son todo identidad (no hay campos de tanda que reiniciar). */
+export function useCloneGrinder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (sourceId: string): Promise<string> => {
+      const { data: src, error: readErr } = await supabase
+        .from("grinders")
+        .select("*")
+        .eq("id", sourceId)
+        .maybeSingle();
+      if (readErr) throw readErr;
+      if (!src) throw new Error("No se encontró el moledor a copiar.");
+      const copy: Partial<GrinderInput> = {
+        name: src.name,
+        type: src.type,
+        brand: src.brand ?? undefined,
+        model: src.model ?? undefined,
+        burr_type: src.burr_type ?? undefined,
+        setting_kind: src.setting_kind ?? undefined,
+        min_setting: src.min_setting ?? undefined,
+        max_setting: src.max_setting ?? undefined,
+        unit_label: src.unit_label ?? undefined,
+        notes: src.notes ?? undefined,
+      };
+      const { data, error } = await supabase.from("grinders").insert(copy).select("id").single();
+      if (error) throw error;
+      return data.id as string;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["grinders"] }),
+  });
+}
+
 export function useUpdateGrinder() {
   const qc = useQueryClient();
   return useMutation({

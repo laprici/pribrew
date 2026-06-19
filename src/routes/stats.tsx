@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Card, ScreenHeader } from "@/components/ui";
 import { useBrews } from "@/data/brews";
+import { useAuth } from "@/lib/auth";
 import { daysSince } from "@/domain/view";
 
 export const Route = createFileRoute("/stats")({
@@ -20,7 +21,9 @@ function SummaryCell({ k, v, accent, border }: { k: string; v: string | number; 
 }
 
 function StatsScreen() {
-  const { data: brews = [], isLoading } = useBrews();
+  const { session } = useAuth();
+  // Estadísticas individuales: solo las extracciones del usuario actual, no las del grupo.
+  const { data: brews = [], isLoading } = useBrews({ personaId: session?.user.id });
 
   const total = brews.length;
   const scored = brews.filter((b) => b.score > 0).map((b) => b.score);

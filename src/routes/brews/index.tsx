@@ -85,9 +85,9 @@ function BrewsPage() {
   );
 
   return (
-    <AppShell title="Historial">
+    <AppShell title="Actividad">
       <div className="mx-auto max-w-2xl">
-        <ScreenHeader sub="Extracciones" title="Historial" />
+        <ScreenHeader sub="Extracciones" title="Actividad" />
 
         {/* filtros */}
         <div className="mb-3.5 grid grid-cols-2 gap-2 sm:grid-cols-4">

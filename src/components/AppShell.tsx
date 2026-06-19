@@ -8,7 +8,7 @@ import { Logo } from "@/components/Logo";
 const NAV = [
   { to: "/", label: "Inicio", icon: Home },
   { to: "/recetas", label: "Recetas", icon: BookOpen },
-  { to: "/brews", label: "Historial", icon: Coffee },
+  { to: "/brews", label: "Actividad", icon: Coffee },
 ] as const;
 
 // Granos/Moledores ya no viven en el nav: se gestionan desde Ajustes.
@@ -23,7 +23,7 @@ const SIDEBAR_EXTRA = [
 const MOBILE_NAV = [
   { to: "/", label: "Inicio", icon: Home },
   { to: "/recetas", label: "Recetas", icon: BookOpen },
-  { to: "/brews", label: "Historial", icon: Coffee },
+  { to: "/brews", label: "Actividad", icon: Coffee },
   { to: "/groups", label: "Grupos", icon: Users },
 ] as const;
 

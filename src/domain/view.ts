@@ -237,3 +237,17 @@ export function daysSince(iso: string): number {
   if (Number.isNaN(d.getTime())) return 0;
   return Math.max(0, Math.round((Date.now() - d.getTime()) / 86_400_000));
 }
+
+/** ¿Pertenece este ítem (grano/moledor/receta) a tu inventario activo?
+   Sí si es tuyo, o si sigue compartido con un grupo del que aún eres miembro.
+   Tras salir de un grupo, la RLS de las tablas *_shares oculta esas filas, así
+   que `sharedGroupIds` queda vacío para lo ajeno: ese ítem solo sobrevive por el
+   historial (owns_brew_with_*, migración 0008). Lo seguimos leyendo para no
+   romper extracciones antiguas, pero no debe aparecer en el inventario activo ni
+   ofrecerse como opción al registrar una extracción nueva. */
+export function isActiveInventory(
+  item: { ownerId: string; sharedGroupIds: string[] },
+  uid: string | undefined
+): boolean {
+  return item.ownerId === uid || item.sharedGroupIds.length > 0;
+}

@@ -4,6 +4,7 @@ import { BrewCard } from "@/components/BrewCard";
 import { Card } from "@/components/ui";
 import { useBrews } from "@/data/brews";
 import { useMyProfile } from "@/data/profiles";
+import { useAuth } from "@/lib/auth";
 import { daysSince } from "@/domain/view";
 
 export const Route = createFileRoute("/")({
@@ -32,8 +33,10 @@ function SummaryCell({
 }
 
 function Dashboard() {
+  const { session } = useAuth();
   const { data: profile } = useMyProfile();
-  const { data: brews = [], isLoading } = useBrews();
+  // Inicio individual: solo las extracciones del usuario actual, no las del grupo.
+  const { data: brews = [], isLoading } = useBrews({ personaId: session?.user.id });
 
   const name = profile?.username ?? "barista";
 

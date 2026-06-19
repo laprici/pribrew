@@ -4,12 +4,13 @@ import { AppShell } from "@/components/AppShell";
 import { Card, MethodBadge } from "@/components/ui";
 import { Field, NumInput, Pills, FormScaffold } from "@/components/form";
 import { StepsReadout } from "@/components/StepsReadout";
+import { useAuth } from "@/lib/auth";
 import { useBeans } from "@/data/beans";
 import { useGrinders } from "@/data/grinders";
 import { useRecetaRow } from "@/data/recetas";
 import { useBrewRow, useCreateBrew, useUpdateBrew, useDeleteBrew } from "@/data/brews";
 import { brewSchema } from "@/domain/brew.schema";
-import { scaleSteps } from "@/domain/view";
+import { isActiveInventory, scaleSteps } from "@/domain/view";
 import type { BrewStep } from "@/domain/receta.schema";
 
 /** Valores opcionales para pre-sembrar el form (p. ej. al «Repetir»). */
@@ -23,6 +24,8 @@ export type BrewFormInitial = {
 export function BrewForm({ brewId, initial }: { brewId?: string; initial?: BrewFormInitial }) {
   const navigate = useNavigate();
   const editing = !!brewId;
+  const { session } = useAuth();
+  const uid = session?.user.id;
   const { data: beans = [] } = useBeans();
   const { data: grinders = [] } = useGrinders();
   const { data: row } = useBrewRow(brewId);
@@ -45,13 +48,20 @@ export function BrewForm({ brewId, initial }: { brewId?: string; initial?: BrewF
   const [notes, setNotes] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
+  // Solo el inventario activo (mío o aún compartido conmigo) es elegible. En
+  // edición conservo el ítem ya referenciado aunque sea "heredado" (visible solo
+  // por el historial), para no perder ni alterar la selección de una extracción
+  // antigua. Ver isActiveInventory / migración 0008.
+  const visibleBeans = beans.filter((b) => isActiveInventory(b, uid) || b.id === beanId);
+  const visibleGrinders = grinders.filter((g) => isActiveInventory(g, uid) || g.id === grinderId);
+
   // Defaults una vez cargan catálogos (solo en creación).
   useEffect(() => {
-    if (!editing && beanId === null && beans.length) setBeanId(beans[0].id);
-  }, [editing, beans, beanId]);
+    if (!editing && beanId === null && visibleBeans.length) setBeanId(visibleBeans[0].id);
+  }, [editing, visibleBeans, beanId]);
   useEffect(() => {
-    if (!editing && grinderId === null && grinders.length) setGrinderId(grinders[0].id);
-  }, [editing, grinders, grinderId]);
+    if (!editing && grinderId === null && visibleGrinders.length) setGrinderId(visibleGrinders[0].id);
+  }, [editing, visibleGrinders, grinderId]);
   // Recipe-first: la extracción nace desde una receta. Sin receta → elegir una.
   useEffect(() => {
     if (!editing && !recetaId) navigate({ to: "/recetas" });
@@ -168,9 +178,9 @@ export function BrewForm({ brewId, initial }: { brewId?: string; initial?: BrewF
         )}
 
         {/* grano */}
-        <Field label="Grano" help={beans.length === 0 ? "Sin granos en el inventario — se guardará sin grano." : undefined}>
+        <Field label="Grano" help={visibleBeans.length === 0 ? "Sin granos en el inventario — se guardará sin grano." : undefined}>
           <div className="-mx-0.5 flex gap-2 overflow-x-auto pb-1">
-            {beans.map((b) => {
+            {visibleBeans.map((b) => {
               const sel = b.id === beanId;
               return (
                 <button
@@ -194,10 +204,10 @@ export function BrewForm({ brewId, initial }: { brewId?: string; initial?: BrewF
         {/* moledor */}
         <Field
           label="Moledor"
-          help={grinders.length === 0 ? "Sin moledores en el inventario — se guardará sin moledor." : undefined}
+          help={visibleGrinders.length === 0 ? "Sin moledores en el inventario — se guardará sin moledor." : undefined}
         >
           <div className="flex flex-wrap gap-2">
-            {grinders.map((g) => {
+            {visibleGrinders.map((g) => {
               const sel = g.id === grinderId;
               return (
                 <button

@@ -9,6 +9,7 @@ import { useBeans } from "@/data/beans";
 import { useGrinders } from "@/data/grinders";
 import { useMyGroups } from "@/data/groups";
 import { useMyProfile, useUpdateProfile, isUsernameAvailable } from "@/data/profiles";
+import { isActiveInventory } from "@/domain/view";
 
 // 3–20 caracteres: letras, números, guion y guion bajo.
 const USERNAME_RE = /^[a-z0-9_-]{3,20}$/i;
@@ -166,6 +167,13 @@ function SettingsScreen() {
 
   const { data: profile } = useMyProfile();
 
+  // Solo el inventario activo (mío o aún compartido conmigo) cuenta: los ítems
+  // "heredados" visibles solo por el historial no aparecen en las listas, así que
+  // tampoco deben inflar el contador. Ver isActiveInventory / migración 0008.
+  const uid = session?.user.id;
+  const beanCount = beans.filter((b) => isActiveInventory(b, uid)).length;
+  const grinderCount = grinders.filter((g) => isActiveInventory(g, uid)).length;
+
   const email = session?.user?.email ?? "";
   const local = email.split("@")[0] || "barista";
   // El username visible para el grupo; si falta, derivamos de la parte del email.
@@ -203,8 +211,8 @@ function SettingsScreen() {
           <div>
             <div className="tag mb-2">Inventario</div>
             <Card pad={false} className="divide-y divide-hairline px-3">
-              <NavRow to="/beans" icon={Bean} label="Granos" count={beans.length} />
-              <NavRow to="/grinders" icon={SlidersHorizontal} label="Moledores" count={grinders.length} />
+              <NavRow to="/beans" icon={Bean} label="Granos" count={beanCount} />
+              <NavRow to="/grinders" icon={SlidersHorizontal} label="Moledores" count={grinderCount} />
               <NavRow to="/groups" icon={Users} label="Grupos" count={groups.length} />
             </Card>
           </div>
