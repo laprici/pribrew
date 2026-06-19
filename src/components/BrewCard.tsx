@@ -55,7 +55,7 @@ export function BrewCard({ brew }: { brew: BrewVM }) {
         </div>
         <div className="grid grid-cols-[1.3fr_1fr_1fr_1fr] border-t border-hairline">
           <MiniCell k="Ratio" v={ratio} accent />
-          <MiniCell k="Dosis" v={brew.dose.toFixed(1)} unit="g" border />
+          <MiniCell k="Café" v={brew.dose.toFixed(1)} unit="g" border />
           <MiniCell k="Temp" v={String(brew.temp)} unit="°" border />
           <MiniCell k="Tiempo" v={fmtTime(brew.timeSec)} border />
         </div>

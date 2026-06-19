@@ -221,7 +221,7 @@ export function BrewForm({ brewId, initial }: { brewId?: string; initial?: BrewF
         </Field>
 
         <div className="grid grid-cols-2 gap-3.5">
-          <Field label="Dosis">
+          <Field label="Café">
             <NumInput value={dose} onChange={setDose} unit="g" />
           </Field>
           <Field label="Agua">

@@ -4,6 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { Card, MethodBadge, Readout } from "@/components/ui";
 import { StepsReadout } from "@/components/StepsReadout";
 import { useRecetaRow } from "@/data/recetas";
+import { useAuth } from "@/lib/auth";
 import { toRecetaVM } from "@/domain/view";
 import { METHOD_FIELDS } from "@/domain/methodFields";
 import { fmtClock } from "@/domain/methodSteps";
@@ -38,6 +39,7 @@ function readParams(methodKey: string, params: Record<string, any> | null | unde
 function RecetaDetail() {
   const navigate = useNavigate();
   const { recetaId } = Route.useParams();
+  const { session } = useAuth();
   const { data: row, isLoading } = useRecetaRow(recetaId);
 
   if (isLoading) {
@@ -63,6 +65,13 @@ function RecetaDetail() {
   const vm = toRecetaVM(row);
   const params = readParams(vm.methodKey, row.method_params);
   const steps = Array.isArray(row.steps) ? row.steps : [];
+  const isOwner = vm.ownerId === session?.user.id;
+  // Espresso: el «output» es el líquido final = dosis × ratio (ml de extracción).
+  const isEspresso = vm.methodKey === "espresso";
+  const outputMl =
+    vm.defaultDose != null && vm.defaultRatio != null
+      ? Math.round(vm.defaultDose * vm.defaultRatio)
+      : null;
 
   return (
     <AppShell title="Receta">
@@ -93,15 +102,30 @@ function RecetaDetail() {
             <MethodBadge method={vm.method} />
           </div>
           <div className="relative flex items-end gap-4">
-            <Readout
-              k="Ratio"
-              v={vm.defaultRatio != null ? `1:${vm.defaultRatio}` : "—"}
-              big
-              accent
-            />
-            <div className="flex-1" />
-            {vm.defaultDose != null && <Readout k="Dosis" v={vm.defaultDose} unit="g" />}
-            {vm.defaultTemp != null && <Readout k="Temp" v={vm.defaultTemp} unit="°C" />}
+            {isEspresso ? (
+              <>
+                <Readout
+                  k="Ratio"
+                  v={vm.defaultRatio != null ? `1:${vm.defaultRatio}` : "—"}
+                  big
+                  accent
+                />
+                <div className="flex-1" />
+                {vm.defaultDose != null && <Readout k="Café" v={vm.defaultDose} unit="g" />}
+                <Readout
+                  k="Extracción"
+                  v={outputMl != null ? outputMl : "—"}
+                  unit={outputMl != null ? "ml" : undefined}
+                />
+              </>
+            ) : (
+              <>
+                <Readout k="Ratio" v={vm.defaultRatio != null ? `1:${vm.defaultRatio}` : "—"} big accent />
+                <div className="flex-1" />
+                {vm.defaultDose != null && <Readout k="Café" v={vm.defaultDose} unit="g" />}
+                {vm.defaultTemp != null && <Readout k="Temp" v={vm.defaultTemp} unit="°C" />}
+              </>
+            )}
           </div>
         </Card>
 
@@ -152,13 +176,17 @@ function RecetaDetail() {
           <Link to="/brews/new" search={{ receta: recetaId }} className="btn-primary flex-1">
             <Coffee size={17} /> Preparar
           </Link>
-          <Link
-            to="/recetas/$recetaId/edit"
-            params={{ recetaId }}
-            className="btn-ghost flex-1 justify-center"
-          >
-            <Pencil size={16} /> Editar
-          </Link>
+          {/* Solo el propietario puede editar/borrar: las recetas compartidas
+              del grupo son de solo lectura (RLS bloquea la escritura). */}
+          {isOwner && (
+            <Link
+              to="/recetas/$recetaId/edit"
+              params={{ recetaId }}
+              className="btn-ghost flex-1 justify-center"
+            >
+              <Pencil size={16} /> Editar
+            </Link>
+          )}
         </div>
       </div>
     </AppShell>

@@ -127,6 +127,8 @@ function DetailPage() {
   // Frescura al momento de la extracción (no a hoy): tueste → fecha de extracción.
   const days = bean ? daysOffRoast(bean.roastDate, brew.date) ?? 0 : 0;
   const isMine = !!session && brew.ownerId === session.user.id;
+  // En espresso usamos los términos café/extracción (coherentes con la receta).
+  const isEspresso = brew.methodKey === "espresso";
 
   return (
     <AppShell title="Extracción">
@@ -172,10 +174,10 @@ function DetailPage() {
             </span>
           </div>
           <div className="relative flex items-end gap-4">
-            <Readout k="Ratio de extracción" v={fmtRatio(brew.dose, brew.water)} big accent />
+            <Readout k="Ratio" v={fmtRatio(brew.dose, brew.water)} big accent />
             <div className="flex-1" />
-            <Readout k="Dosis" v={brew.dose.toFixed(1)} unit="g" />
-            <Readout k="Agua" v={brew.water} unit="g" />
+            <Readout k="Café" v={brew.dose.toFixed(1)} unit="g" />
+            <Readout k={isEspresso ? "Extracción" : "Agua"} v={brew.water} unit="g" />
           </div>
         </Card>
 

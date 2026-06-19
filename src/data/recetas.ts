@@ -62,8 +62,11 @@ export function useUpdateReceta() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<RecetaInput> }): Promise<void> => {
-      const { error } = await supabase.from("recetas").update(input).eq("id", id);
+      // .select() para detectar el caso 0 filas: si la receta es de otro miembro
+      // del grupo, RLS deja leerla pero bloquea el UPDATE — sin error, 0 filas.
+      const { data, error } = await supabase.from("recetas").update(input).eq("id", id).select("id");
       if (error) throw error;
+      if (!data?.length) throw new Error("No puedes editar esta receta: pertenece a otro miembro del grupo.");
     },
     onSuccess: (_d, { id }) => {
       qc.invalidateQueries({ queryKey: ["recetas"] });
@@ -77,8 +80,13 @@ export function useDeleteReceta() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      const { error } = await supabase.from("recetas").update({ is_active: false }).eq("id", id);
+      const { data, error } = await supabase
+        .from("recetas")
+        .update({ is_active: false })
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      if (!data?.length) throw new Error("No puedes borrar esta receta: pertenece a otro miembro del grupo.");
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["recetas"] }),
   });
