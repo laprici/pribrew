@@ -197,6 +197,7 @@ export function FormScaffold({
   error,
   onDelete,
   deleting,
+  extraActions,
 }: {
   title: string;
   sub?: string;
@@ -208,6 +209,7 @@ export function FormScaffold({
   error?: string | null;
   onDelete?: () => void;
   deleting?: boolean;
+  extraActions?: ReactNode;
 }) {
   return (
     <div className="mx-auto max-w-xl">
@@ -233,6 +235,7 @@ export function FormScaffold({
         <button onClick={onSave} disabled={saving} className="btn-primary disabled:opacity-60">
           <Check size={17} /> {saving ? "Guardando…" : saveLabel}
         </button>
+        {extraActions}
         {onDelete && (
           <button
             onClick={onDelete}

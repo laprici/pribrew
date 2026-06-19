@@ -6,7 +6,8 @@ type AuthState = {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  /** Devuelve true si la cuenta requiere confirmar el correo antes de entrar. */
+  signUp: (email: string, password: string, username: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 };
 
@@ -31,9 +32,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   };
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+  const signUp = async (email: string, password: string, username: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username },
+        emailRedirectTo: window.location.origin,
+      },
+    });
     if (error) throw error;
+    // Sin sesión tras el alta ⇒ Supabase envió correo de confirmación y espera verificación.
+    return !data.session;
   };
   const signOut = async () => {
     await supabase.auth.signOut();

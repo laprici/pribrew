@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { PackageCheck, RotateCcw } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Field, TextInput, NumInput, Select, Pills, FormScaffold } from "@/components/form";
 import { beanSchema } from "@/domain/bean.schema";
-import { useBean, useCreateBean, useUpdateBean, useDeleteBean } from "@/data/beans";
+import {
+  useBean,
+  useCreateBean,
+  useUpdateBean,
+  useDeleteBean,
+  useSetBeanFinished,
+} from "@/data/beans";
 
 const PROCESS_OPTS = [
   { value: "washed", label: "Lavado" },
@@ -40,6 +47,8 @@ export function BeanForm({ beanId }: { beanId?: string }) {
   const createBean = useCreateBean();
   const updateBean = useUpdateBean();
   const deleteBean = useDeleteBean();
+  const setFinished = useSetBeanFinished();
+  const finished = row?.finished_at != null;
 
   const [name, setName] = useState("");
   const [roaster, setRoaster] = useState("");
@@ -108,6 +117,17 @@ export function BeanForm({ beanId }: { beanId?: string }) {
     }
   }
 
+  async function handleToggleFinished() {
+    if (!beanId) return;
+    setErr(null);
+    try {
+      await setFinished.mutateAsync({ id: beanId, finished: !finished });
+      navigate({ to: "/beans" });
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "No se pudo actualizar el grano.");
+    }
+  }
+
   return (
     <AppShell title={editing ? "Editar grano" : "Nuevo grano"}>
       <FormScaffold
@@ -119,6 +139,22 @@ export function BeanForm({ beanId }: { beanId?: string }) {
         error={err}
         onDelete={editing ? handleDelete : undefined}
         deleting={deleteBean.isPending}
+        extraActions={
+          editing ? (
+            <button
+              onClick={handleToggleFinished}
+              disabled={setFinished.isPending}
+              className="btn-ghost disabled:opacity-60"
+            >
+              {finished ? <RotateCcw size={16} /> : <PackageCheck size={16} />}
+              {setFinished.isPending
+                ? "Guardando…"
+                : finished
+                  ? "Marcar como disponible"
+                  : "Marcar como acabado"}
+            </button>
+          ) : undefined
+        }
       >
         <Field label="Nombre">
           <TextInput value={name} onChange={setName} placeholder="Ej. Finca La Esperanza" />

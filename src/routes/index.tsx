@@ -3,7 +3,7 @@ import { AppShell } from "@/components/AppShell";
 import { BrewCard } from "@/components/BrewCard";
 import { Card } from "@/components/ui";
 import { useBrews } from "@/data/brews";
-import { useAuth } from "@/lib/auth";
+import { useMyProfile } from "@/data/profiles";
 import { daysSince } from "@/domain/view";
 
 export const Route = createFileRoute("/")({
@@ -32,11 +32,10 @@ function SummaryCell({
 }
 
 function Dashboard() {
-  const { session } = useAuth();
+  const { data: profile } = useMyProfile();
   const { data: brews = [], isLoading } = useBrews();
 
-  const local = session?.user?.email?.split("@")[0] ?? "barista";
-  const name = local.charAt(0).toUpperCase() + local.slice(1);
+  const name = profile?.username ?? "barista";
 
   const scored = brews.filter((b) => b.score > 0).map((b) => b.score);
   const avg = scored.length

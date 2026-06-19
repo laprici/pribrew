@@ -8,7 +8,10 @@ import { useTheme, type Theme } from "@/lib/theme";
 import { useBeans } from "@/data/beans";
 import { useGrinders } from "@/data/grinders";
 import { useMyGroups } from "@/data/groups";
-import { useMyProfile, useUpdateProfile } from "@/data/profiles";
+import { useMyProfile, useUpdateProfile, isUsernameAvailable } from "@/data/profiles";
+
+// 3–20 caracteres: letras, números, guion y guion bajo.
+const USERNAME_RE = /^[a-z0-9_-]{3,20}$/i;
 
 export const Route = createFileRoute("/settings")({
   component: SettingsScreen,
@@ -55,21 +58,36 @@ function NavRow({ to, icon: Icon, label, count }: {
   );
 }
 
-/** Tarjeta de perfil con el nombre visible editable (lo que ve el grupo). */
+/** Tarjeta de perfil con el username (único) editable: lo que ve el grupo. */
 function ProfileCard({ name, initial, email }: { name: string; initial: string; email: string }) {
   const updateProfile = useUpdateProfile();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(name);
+  const [err, setErr] = useState<string | null>(null);
+
+  function cancel() {
+    setEditing(false);
+    setValue(name);
+    setErr(null);
+  }
 
   async function save() {
     const next = value.trim();
     if (!next || next === name) {
-      setEditing(false);
-      setValue(name);
+      cancel();
+      return;
+    }
+    if (!USERNAME_RE.test(next)) {
+      setErr("3–20 caracteres (letras, números, - o _)");
+      return;
+    }
+    if (!(await isUsernameAvailable(next))) {
+      setErr("Ese usuario ya está en uso");
       return;
     }
     await updateProfile.mutateAsync(next);
     setEditing(false);
+    setErr(null);
   }
 
   return (
@@ -78,40 +96,43 @@ function ProfileCard({ name, initial, email }: { name: string; initial: string; 
         {initial}
       </span>
       {editing ? (
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <input
-            autoFocus
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") save();
-              if (e.key === "Escape") {
-                setEditing(false);
-                setValue(name);
-              }
-            }}
-            maxLength={40}
-            placeholder="Tu nombre"
-            className="min-w-0 flex-1 rounded-md border border-hairline-strong bg-surface-2 px-3 py-2 text-[15px] text-ink outline-none placeholder:text-faint"
-          />
-          <button
-            onClick={save}
-            disabled={updateProfile.isPending}
-            aria-label="Guardar"
-            className="grid h-9 w-9 flex-none place-items-center rounded-md bg-accent text-accent-ink disabled:opacity-60"
-          >
-            <Check size={17} />
-          </button>
-          <button
-            onClick={() => {
-              setEditing(false);
-              setValue(name);
-            }}
-            aria-label="Cancelar"
-            className="grid h-9 w-9 flex-none place-items-center rounded-md border border-hairline text-muted"
-          >
-            <X size={17} />
-          </button>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <input
+              autoFocus
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              value={value}
+              onChange={(e) => {
+                setValue(e.target.value);
+                setErr(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") save();
+                if (e.key === "Escape") cancel();
+              }}
+              maxLength={20}
+              placeholder="tu_usuario"
+              className="min-w-0 flex-1 rounded-md border border-hairline-strong bg-surface-2 px-3 py-2 text-[15px] text-ink outline-none placeholder:text-faint"
+            />
+            <button
+              onClick={save}
+              disabled={updateProfile.isPending}
+              aria-label="Guardar"
+              className="grid h-9 w-9 flex-none place-items-center rounded-md bg-accent text-accent-ink disabled:opacity-60"
+            >
+              <Check size={17} />
+            </button>
+            <button
+              onClick={cancel}
+              aria-label="Cancelar"
+              className="grid h-9 w-9 flex-none place-items-center rounded-md border border-hairline text-muted"
+            >
+              <X size={17} />
+            </button>
+          </div>
+          {err && <p className="text-[13px] text-roast">{err}</p>}
         </div>
       ) : (
         <>
@@ -124,7 +145,7 @@ function ProfileCard({ name, initial, email }: { name: string; initial: string; 
               setValue(name);
               setEditing(true);
             }}
-            aria-label="Editar nombre"
+            aria-label="Editar usuario"
             className="grid h-9 w-9 flex-none place-items-center rounded-md border border-hairline text-muted transition-colors hover:bg-chip"
           >
             <Pencil size={16} />
@@ -147,8 +168,8 @@ function SettingsScreen() {
 
   const email = session?.user?.email ?? "";
   const local = email.split("@")[0] || "barista";
-  // El nombre visible para el grupo es display_name; si falta, derivamos del email.
-  const name = profile?.display_name || local.charAt(0).toUpperCase() + local.slice(1);
+  // El username visible para el grupo; si falta, derivamos de la parte del email.
+  const name = profile?.username || local;
   const initial = name.charAt(0).toUpperCase();
 
   const setTheme = (t: Theme) => {

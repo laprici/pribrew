@@ -35,7 +35,7 @@ function InvitePage() {
   return (
     <div className="grid min-h-dvh place-items-center px-4">
       <div className="card w-full max-w-sm p-6 text-center">
-        <img src="/icon.svg" alt="" className="mx-auto mb-4 h-12 w-12 rounded-xl" />
+        <img src="/mark.svg" alt="Pribrew" className="mx-auto mb-4 h-14 w-14" />
 
         {isLoading && <p className="text-muted">Verificando invitación…</p>}
 

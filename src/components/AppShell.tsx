@@ -3,9 +3,10 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Home, Coffee, Users, LogOut, Plus, Sun, Moon, BarChart3, Settings, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
+import { Logo } from "@/components/Logo";
 
 const NAV = [
-  { to: "/", label: "Bitácora", icon: Home },
+  { to: "/", label: "Inicio", icon: Home },
   { to: "/recetas", label: "Recetas", icon: BookOpen },
   { to: "/brews", label: "Historial", icon: Coffee },
 ] as const;
@@ -20,7 +21,7 @@ const SIDEBAR_EXTRA = [
 // Bottom-nav móvil: grid fijo de 5 (4 ítems + FAB central). Grupos solo es
 // accesible aquí en móvil (Stats/Ajustes viven en los iconos del header).
 const MOBILE_NAV = [
-  { to: "/", label: "Bitácora", icon: Home },
+  { to: "/", label: "Inicio", icon: Home },
   { to: "/recetas", label: "Recetas", icon: BookOpen },
   { to: "/brews", label: "Historial", icon: Coffee },
   { to: "/groups", label: "Grupos", icon: Users },
@@ -69,9 +70,8 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
     <div className="min-h-dvh bg-bg-2 md:grid md:grid-cols-[15rem_1fr]">
       {/* Sidebar — solo desktop */}
       <aside className="hidden border-r border-hairline bg-surface px-3 py-5 md:sticky md:top-0 md:flex md:h-dvh md:flex-col md:gap-1 md:overflow-y-auto">
-        <div className="flex items-center gap-2 px-3 pb-5">
-          <img src="/icon.svg" alt="" className="h-7 w-7 rounded-md" />
-          <span className="font-semibold tracking-tight">Pribrew</span>
+        <div className="flex items-center px-3 pb-6 pt-1">
+          <Logo className="h-10" />
         </div>
         <nav className="flex flex-col gap-1">
           {NAV.map(({ to, label, icon: Icon }) => (
@@ -115,7 +115,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
           style={{ backgroundColor: "color-mix(in srgb, var(--bg-2) 85%, transparent)" }}
         >
           <div className="flex items-center gap-2">
-            <img src="/icon.svg" alt="" className="h-7 w-7 rounded-md md:hidden" />
+            <Logo className="h-6 md:hidden" />
             <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
           </div>
           <div className="flex items-center gap-2 md:hidden">

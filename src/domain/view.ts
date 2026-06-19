@@ -23,12 +23,14 @@ export type BeanVM = {
   notes: string[];
   stock: number;
   color: string;
+  finished: boolean;
 };
 
 export type BrewVM = {
   id: string;
   ownerId: string;
   bean: BeanVM | null;
+  grinder: string | null;
   recetaId: string | null;
   recetaName: string | null;
   method: string;
@@ -107,11 +109,12 @@ export function toBeanVM(r: any): BeanVM {
     notes: parseNotes(r.roaster_notes),
     stock: r.remaining_g ?? r.weight_g ?? 0,
     color: (r.roast_level && ROAST_COLORS[r.roast_level]) || "#8A4B2A",
+    finished: r.finished_at != null,
   };
 }
 
 /** rating (1–5) → puntuación 0–10; si no hay rating, promedia las dimensiones de cata. */
-function scoreFromRow(r: any): number {
+export function scoreFromRow(r: any): number {
   if (r.rating != null) return round1(r.rating * 2);
   const dims = [r.acidity, r.sweetness, r.bitterness, r.body, r.aftertaste].filter(
     (x: any) => x != null
@@ -144,6 +147,11 @@ function targetFor(methodRow: any, methodKey: string): BrewTarget {
 
 export function toBrewVM(r: any): BrewVM {
   const bean = r.bean ? toBeanVM(r.bean) : null;
+  const grinder = r.grinder
+    ? r.grinder.name ||
+      [r.grinder.brand, r.grinder.model].filter(Boolean).join(" ") ||
+      "Moledor"
+    : null;
   const receta = r.receta ?? null;
   const methodKey: string =
     r.method?.key ?? receta?.method?.key ?? receta?.method_params?.method ?? "";
@@ -160,6 +168,7 @@ export function toBrewVM(r: any): BrewVM {
     id: r.id,
     ownerId: r.owner_id ?? "",
     bean,
+    grinder,
     recetaId: receta?.id ?? null,
     recetaName: receta?.name ?? null,
     method: methodLabel,

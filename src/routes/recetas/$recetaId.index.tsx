@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Coffee, Pencil } from "lucide-react";
+import { ArrowLeft, Coffee, Pencil, History } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, MethodBadge, Readout } from "@/components/ui";
 import { StepsReadout } from "@/components/StepsReadout";
-import { GroupRanking } from "@/components/GroupRanking";
 import { useRecetaRow } from "@/data/recetas";
 import { toRecetaVM } from "@/domain/view";
 import { METHOD_FIELDS } from "@/domain/methodFields";
@@ -134,8 +133,20 @@ function RecetaDetail() {
           </Card>
         )}
 
-        {/* mejor extracción + ranking del grupo */}
-        <GroupRanking recetaId={recetaId} />
+        {/* extracciones de esta receta (con filtros por fecha, grano, moledor…) */}
+        <Link
+          to="/brews"
+          search={{ receta: recetaId }}
+          className="card mb-3.5 flex items-center gap-3 transition-colors hover:border-hairline-strong"
+        >
+          <span className="grid h-9 w-9 flex-none place-items-center rounded-md border border-hairline text-ink-soft">
+            <History size={17} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[15px] font-medium tracking-[-0.01em]">Ver extracciones</div>
+          </div>
+          <span className="text-muted">→</span>
+        </Link>
 
         <div className="flex gap-2.5">
           <Link to="/brews/new" search={{ receta: recetaId }} className="btn-primary flex-1">

@@ -3,15 +3,15 @@ import { supabase } from "@/lib/supabase";
 import { toBeanVM, type BeanVM } from "@/domain/view";
 import type { BeanInput } from "@/domain/bean.schema";
 
-export function useBeans() {
+/** Por defecto solo trae granos disponibles (no acabados). El inventario pide
+   includeFinished para mostrarlos también; los selectores de extracción no. */
+export function useBeans({ includeFinished = false }: { includeFinished?: boolean } = {}) {
   return useQuery({
-    queryKey: ["beans"],
+    queryKey: ["beans", { includeFinished }],
     queryFn: async (): Promise<BeanVM[]> => {
-      const { data, error } = await supabase
-        .from("beans")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
+      let q = supabase.from("beans").select("*").eq("is_active", true);
+      if (!includeFinished) q = q.is("finished_at", null);
+      const { data, error } = await q.order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []).map(toBeanVM);
     },
@@ -55,6 +55,25 @@ export function useUpdateBean() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["beans"] }),
+  });
+}
+
+/** Marca un grano como acabado (sin stock) o lo devuelve a disponible.
+   No lo borra: sigue activo y referenciable por extracciones e historial. */
+export function useSetBeanFinished() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, finished }: { id: string; finished: boolean }): Promise<void> => {
+      const { error } = await supabase
+        .from("beans")
+        .update({ finished_at: finished ? new Date().toISOString() : null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, { id }) => {
+      qc.invalidateQueries({ queryKey: ["beans"] });
+      qc.invalidateQueries({ queryKey: ["beans", id] });
+    },
   });
 }
 

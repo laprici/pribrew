@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Plus, Search, ListChecks } from "lucide-react";
+import { Plus, Search, ListChecks, History } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, MethodBadge, ScreenHeader } from "@/components/ui";
 import { Author } from "@/components/Author";
 import { useRecetas } from "@/data/recetas";
+import { useRecetaCounts } from "@/data/brews";
 
 export const Route = createFileRoute("/recetas/")({
   component: RecetasPage,
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/recetas/")({
 
 function RecetasPage() {
   const { data: recetas = [], isLoading } = useRecetas();
+  const { data: counts = {} } = useRecetaCounts();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
 
@@ -58,37 +60,62 @@ function RecetasPage() {
           <Card className="text-center text-sm text-muted">Sin recetas que coincidan.</Card>
         ) : (
           <div className="flex flex-col gap-3">
-            {filtered.map((r) => (
-              <Card
-                key={r.id}
-                onClick={() => navigate({ to: "/recetas/$recetaId", params: { recetaId: r.id } })}
-                className="flex items-center gap-3.5"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1.5 flex items-center gap-2">
-                    <MethodBadge method={r.method} />
-                    {r.stepCount > 0 && (
-                      <span className="mono inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-faint">
-                        <ListChecks size={12} /> {r.stepCount} pasos
-                      </span>
-                    )}
-                    <Author ownerId={r.ownerId} hideMine />
-                  </div>
-                  <div className="truncate text-[18px] font-semibold tracking-[-0.02em]">{r.name}</div>
-                  {(r.defaultDose != null || r.defaultRatio != null || r.defaultTemp != null) && (
-                    <div className="tag mt-1 text-muted">
-                      {[
-                        r.defaultDose != null ? `${r.defaultDose} g` : null,
-                        r.defaultRatio != null ? `1:${r.defaultRatio}` : null,
-                        r.defaultTemp != null ? `${r.defaultTemp}°C` : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
+            {filtered.map((r) => {
+              const count = counts[r.id] ?? 0;
+              return (
+                <Card
+                  key={r.id}
+                  onClick={() => navigate({ to: "/recetas/$recetaId", params: { recetaId: r.id } })}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1.5 flex items-center gap-2">
+                        <MethodBadge method={r.method} />
+                        {r.stepCount > 0 && (
+                          <span className="mono inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-faint">
+                            <ListChecks size={12} /> {r.stepCount} pasos
+                          </span>
+                        )}
+                        <Author ownerId={r.ownerId} hideMine />
+                      </div>
+                      <div className="truncate text-[18px] font-semibold tracking-[-0.02em]">
+                        {r.name}
+                      </div>
+                      {(r.defaultDose != null || r.defaultRatio != null || r.defaultTemp != null) && (
+                        <div className="tag mt-1 text-muted">
+                          {[
+                            r.defaultDose != null ? `${r.defaultDose} g` : null,
+                            r.defaultRatio != null ? `1:${r.defaultRatio}` : null,
+                            r.defaultTemp != null ? `${r.defaultTemp}°C` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </Card>
-            ))}
+                  </div>
+
+                  {/* acceso a las extracciones de esta receta (filtrables) */}
+                  <div className="mt-3 flex items-center gap-3 border-t border-hairline pt-3">
+                    <span className="tag text-muted">
+                      {count > 0
+                        ? `${count} ${count === 1 ? "extracción" : "extracciones"}`
+                        : "Sin extracciones aún"}
+                    </span>
+                    {count > 0 && (
+                      <Link
+                        to="/brews"
+                        search={{ receta: r.id }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="btn-ghost ml-auto !px-3 !py-1.5 text-[12px]"
+                      >
+                        <History size={14} /> Ver extracciones
+                      </Link>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>

@@ -16,7 +16,7 @@ import {
   type Tone,
 } from "@/components/ui";
 import { useBrew, useDeleteBrew } from "@/data/brews";
-import { daysSince } from "@/domain/view";
+import { daysOffRoast } from "@/domain/calc";
 import { StepsReadout } from "@/components/StepsReadout";
 import { Author } from "@/components/Author";
 import { useAuth } from "@/lib/auth";
@@ -30,6 +30,7 @@ function ParamCell({
   k,
   v,
   unit,
+  sub,
   tone,
   border,
 }: {
@@ -37,6 +38,7 @@ function ParamCell({
   k: string;
   v: string;
   unit?: string;
+  sub?: string;
   tone?: Tone;
   border?: boolean;
 }) {
@@ -50,6 +52,7 @@ function ParamCell({
         {v}
         {unit && <span className="ml-0.5 text-[0.55em] text-muted">{unit}</span>}
       </div>
+      {sub && <div className="mt-1 truncate text-[11px] text-muted">{sub}</div>}
     </div>
   );
 }
@@ -121,7 +124,8 @@ function DetailPage() {
   const tgt = brew.target;
   const ratioOk = r >= tgt.ratioLow && r <= tgt.ratioHigh;
   const tempOk = brew.temp >= tgt.tempLow && brew.temp <= tgt.tempHigh;
-  const days = bean ? daysSince(bean.roastDate) : 0;
+  // Frescura al momento de la extracción (no a hoy): tueste → fecha de extracción.
+  const days = bean ? daysOffRoast(bean.roastDate, brew.date) ?? 0 : 0;
   const isMine = !!session && brew.ownerId === session.user.id;
 
   return (
@@ -180,7 +184,13 @@ function DetailPage() {
           <div className="grid grid-cols-3">
             <ParamCell icon={Thermometer} k="Temperatura" v={String(brew.temp)} unit="°C" tone={tempOk ? null : "warn"} />
             <ParamCell icon={Clock} k="Tiempo" v={fmtTime(brew.timeSec)} border />
-            <ParamCell icon={Settings2} k="Molienda" v={brew.grind} border />
+            <ParamCell
+              icon={Settings2}
+              k="Molienda"
+              v={brew.grind}
+              sub={brew.grinder ?? "Sin moledor"}
+              border
+            />
           </div>
           <div className="grid grid-cols-2 border-t border-hairline">
             <TargetRow label="Ratio objetivo" range={`1:${tgt.ratioLow}–${tgt.ratioHigh}`} ok={ratioOk} />
