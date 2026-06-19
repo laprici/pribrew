@@ -4,10 +4,14 @@ FROM node:22.16.0-alpine AS build
 
 WORKDIR /app
 
-# pnpm vía corepack (el repo usa pnpm-lock.yaml; el package-lock.json está obsoleto)
+# pnpm vía corepack (el repo usa pnpm-lock.yaml; el package-lock.json está obsoleto).
+# La versión exacta la fija el campo "packageManager" de package.json; sin prompt
+# de descarga en build no interactivo.
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml ./
+# --frozen-lockfile: build reproducible; esbuild aprobado vía pnpm.onlyBuiltDependencies
 RUN pnpm install --frozen-lockfile
 
 COPY . .
