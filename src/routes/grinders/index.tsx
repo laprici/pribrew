@@ -2,15 +2,50 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Plus, Bean as BeanIcon } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, ScreenHeader } from "@/components/ui";
-import { useGrinders } from "@/data/grinders";
+import { Author } from "@/components/Author";
+import { ShareBadge } from "@/components/ShareGroups";
+import { useAuth } from "@/lib/auth";
+import { useGrinders, type GrinderRow } from "@/data/grinders";
 
 export const Route = createFileRoute("/grinders/")({
   component: GrindersPage,
 });
 
+function GrinderCard({ g, onClick, mine }: { g: GrinderRow; onClick?: () => void; mine: boolean }) {
+  const range =
+    g.min_setting != null && g.max_setting != null
+      ? `${g.min_setting}–${g.max_setting}${g.unit_label ? " " + g.unit_label : ""}`
+      : g.unit_label || "—";
+  return (
+    <Card onClick={onClick} className="flex items-center gap-3.5">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <div className="truncate text-[17px] font-semibold tracking-[-0.02em]">{g.name}</div>
+          {mine ? <ShareBadge count={g.sharedGroupIds.length} /> : <Author ownerId={g.ownerId} />}
+        </div>
+        <div className="tag mt-1">
+          {g.type === "manual" ? "Manual" : "Eléctrico"}
+          {g.brand ? ` · ${g.brand}` : ""}
+          {g.model ? ` ${g.model}` : ""}
+        </div>
+      </div>
+      <div className="flex flex-col items-end gap-1">
+        <span className="tag text-[9px]">{g.setting_kind === "stepped" ? "Por pasos" : "Continuo"}</span>
+        <span className="mono text-[13px] text-ink-soft">{range}</span>
+      </div>
+    </Card>
+  );
+}
+
 function GrindersPage() {
   const { data: grinders = [], isLoading } = useGrinders();
+  const { session } = useAuth();
   const navigate = useNavigate();
+
+  const uid = session?.user.id;
+  const mine = grinders.filter((g) => g.ownerId === uid);
+  const shared = grinders.filter((g) => g.ownerId !== uid);
+  const open = (id: string) => navigate({ to: "/grinders/$grinderId/edit", params: { grinderId: id } });
 
   return (
     <AppShell title="Moledores">
@@ -38,32 +73,18 @@ function GrindersPage() {
           <Card className="text-center text-sm text-muted">Aún no hay moledores en el inventario.</Card>
         ) : (
           <div className="flex flex-col gap-3">
-            {grinders.map((g) => {
-              const range =
-                g.min_setting != null && g.max_setting != null
-                  ? `${g.min_setting}–${g.max_setting}${g.unit_label ? " " + g.unit_label : ""}`
-                  : g.unit_label || "—";
-              return (
-                <Card
-                  key={g.id}
-                  onClick={() => navigate({ to: "/grinders/$grinderId/edit", params: { grinderId: g.id } })}
-                  className="flex items-center gap-3.5"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[17px] font-semibold tracking-[-0.02em]">{g.name}</div>
-                    <div className="tag mt-1">
-                      {g.type === "manual" ? "Manual" : "Eléctrico"}
-                      {g.brand ? ` · ${g.brand}` : ""}
-                      {g.model ? ` ${g.model}` : ""}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="tag text-[9px]">{g.setting_kind === "stepped" ? "Por pasos" : "Continuo"}</span>
-                    <span className="mono text-[13px] text-ink-soft">{range}</span>
-                  </div>
-                </Card>
-              );
-            })}
+            {mine.map((g) => (
+              <GrinderCard key={g.id} g={g} mine onClick={() => open(g.id)} />
+            ))}
+
+            {shared.length > 0 && (
+              <>
+                <div className="tag mt-2 px-1 text-faint">Compartidos conmigo</div>
+                {shared.map((g) => (
+                  <GrinderCard key={g.id} g={g} mine={false} />
+                ))}
+              </>
+            )}
           </div>
         )}
       </div>

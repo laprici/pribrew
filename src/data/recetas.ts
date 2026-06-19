@@ -7,7 +7,8 @@ import type { RecetaInput } from "@/domain/receta.schema";
 const RECETA_SELECT = `
   id, owner_id, name, method_id, method_params, steps, default_dose_g, default_ratio,
   default_temp_c, notes, created_at,
-  method:methods ( id, key, name, default_ratio, default_temp_c )
+  method:methods ( id, key, name, default_ratio, default_temp_c ),
+  receta_shares ( group_id )
 `;
 
 export function useRecetas() {

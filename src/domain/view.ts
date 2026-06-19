@@ -14,6 +14,8 @@ export type BrewTarget = {
 
 export type BeanVM = {
   id: string;
+  ownerId: string;
+  sharedGroupIds: string[];
   origin: string;
   country: string;
   variety: string;
@@ -51,6 +53,7 @@ export type BrewVM = {
 export type RecetaVM = {
   id: string;
   ownerId: string;
+  sharedGroupIds: string[];
   name: string;
   method: string;
   methodKey: string;
@@ -100,6 +103,8 @@ function parseNotes(s?: string | null): string[] {
 export function toBeanVM(r: any): BeanVM {
   return {
     id: r.id,
+    ownerId: r.owner_id ?? "",
+    sharedGroupIds: Array.isArray(r.bean_shares) ? r.bean_shares.map((s: any) => s.group_id) : [],
     origin: r.region || r.origin_country || r.name || "Grano",
     country: r.origin_country || "—",
     variety: r.variety || "—",
@@ -195,6 +200,7 @@ export function toRecetaVM(r: any): RecetaVM {
   return {
     id: r.id,
     ownerId: r.owner_id ?? "",
+    sharedGroupIds: Array.isArray(r.receta_shares) ? r.receta_shares.map((s: any) => s.group_id) : [],
     name: r.name ?? "Receta",
     method: methodLabel,
     methodKey,

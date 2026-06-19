@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Field, TextInput, NumInput, Pills, FormScaffold } from "@/components/form";
+import { ShareGroupsField } from "@/components/ShareGroups";
 import { grinderSchema } from "@/domain/grinder.schema";
 import { useGrinder, useCreateGrinder, useUpdateGrinder, useDeleteGrinder } from "@/data/grinders";
+import { useItemShares, useSetItemShares } from "@/data/shares";
 
 type GType = "manual" | "electric";
 type SKind = "stepped" | "stepless";
@@ -30,7 +32,10 @@ export function GrinderForm({ grinderId }: { grinderId?: string }) {
   const createGrinder = useCreateGrinder();
   const updateGrinder = useUpdateGrinder();
   const deleteGrinder = useDeleteGrinder();
+  const setShares = useSetItemShares("grinder");
+  const { data: existingShares } = useItemShares("grinder", grinderId);
 
+  const [shareGroups, setShareGroups] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [type, setType] = useState<GType>("manual");
   const [brand, setBrand] = useState("");
@@ -57,6 +62,10 @@ export function GrinderForm({ grinderId }: { grinderId?: string }) {
     setNotes(row.notes ?? "");
   }, [row]);
 
+  useEffect(() => {
+    if (existingShares) setShareGroups(existingShares);
+  }, [existingShares]);
+
   async function handleSave() {
     setErr(null);
     const parsed = grinderSchema.safeParse({
@@ -76,8 +85,10 @@ export function GrinderForm({ grinderId }: { grinderId?: string }) {
       return;
     }
     try {
-      if (editing) await updateGrinder.mutateAsync({ id: grinderId!, input: parsed.data });
-      else await createGrinder.mutateAsync(parsed.data);
+      const id = editing
+        ? (await updateGrinder.mutateAsync({ id: grinderId!, input: parsed.data }), grinderId!)
+        : await createGrinder.mutateAsync(parsed.data);
+      await setShares.mutateAsync({ itemId: id, groupIds: shareGroups });
       navigate({ to: "/grinders" });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "No se pudo guardar el moledor.");
@@ -101,7 +112,7 @@ export function GrinderForm({ grinderId }: { grinderId?: string }) {
         sub={editing ? "Inventario" : "Nuevo moledor"}
         onBack={() => navigate({ to: "/grinders" })}
         onSave={handleSave}
-        saving={createGrinder.isPending || updateGrinder.isPending}
+        saving={createGrinder.isPending || updateGrinder.isPending || setShares.isPending}
         error={err}
         onDelete={editing ? handleDelete : undefined}
         deleting={deleteGrinder.isPending}
@@ -152,6 +163,8 @@ export function GrinderForm({ grinderId }: { grinderId?: string }) {
             style={{ fontFamily: "var(--font-display)" }}
           />
         </Field>
+
+        <ShareGroupsField value={shareGroups} onChange={setShareGroups} />
       </FormScaffold>
     </AppShell>
   );

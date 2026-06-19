@@ -3,8 +3,10 @@ import { useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui";
 import { Field, NumInput, Pills, Select, Toggle, TextInput, FormScaffold } from "@/components/form";
+import { ShareGroupsField } from "@/components/ShareGroups";
 import { useMethods } from "@/data/methods";
 import { useRecetaRow, useCreateReceta, useUpdateReceta, useDeleteReceta } from "@/data/recetas";
+import { useItemShares, useSetItemShares } from "@/data/shares";
 import { recetaSchema } from "@/domain/receta.schema";
 import type { MethodKey } from "@/domain/method";
 import { buildSteps, parseClock, fmtClock } from "@/domain/methodSteps";
@@ -52,7 +54,10 @@ export function RecetaForm({ recetaId }: { recetaId?: string }) {
   const createReceta = useCreateReceta();
   const updateReceta = useUpdateReceta();
   const deleteReceta = useDeleteReceta();
+  const setShares = useSetItemShares("receta");
+  const { data: existingShares } = useItemShares("receta", recetaId);
 
+  const [shareGroups, setShareGroups] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [methodId, setMethodId] = useState<string | null>(null);
   const [defDose, setDefDose] = useState("18");
@@ -104,6 +109,10 @@ export function RecetaForm({ recetaId }: { recetaId?: string }) {
       }))
     );
   }, [row]);
+
+  useEffect(() => {
+    if (existingShares) setShareGroups(existingShares);
+  }, [existingShares]);
 
   const method = methods.find((m) => m.id === methodId);
   const methodKey = method?.key as MethodKey | undefined;
@@ -203,8 +212,10 @@ export function RecetaForm({ recetaId }: { recetaId?: string }) {
       return;
     }
     try {
-      if (editing) await updateReceta.mutateAsync({ id: recetaId!, input: parsed.data });
-      else await createReceta.mutateAsync(parsed.data);
+      const id = editing
+        ? (await updateReceta.mutateAsync({ id: recetaId!, input: parsed.data }), recetaId!)
+        : await createReceta.mutateAsync(parsed.data);
+      await setShares.mutateAsync({ itemId: id, groupIds: shareGroups });
       navigate({ to: "/recetas" });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "No se pudo guardar la receta.");
@@ -230,7 +241,7 @@ export function RecetaForm({ recetaId }: { recetaId?: string }) {
         sub="Receta"
         onBack={() => navigate({ to: "/recetas" })}
         onSave={handleSave}
-        saving={createReceta.isPending || updateReceta.isPending}
+        saving={createReceta.isPending || updateReceta.isPending || setShares.isPending}
         saveLabel={editing ? "Guardar cambios" : "Guardar receta"}
         error={err}
         onDelete={editing ? handleDelete : undefined}
@@ -429,6 +440,8 @@ export function RecetaForm({ recetaId }: { recetaId?: string }) {
             style={{ fontFamily: "var(--font-display)" }}
           />
         </Field>
+
+        <ShareGroupsField value={shareGroups} onChange={setShareGroups} />
       </FormScaffold>
     </AppShell>
   );

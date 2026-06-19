@@ -2,6 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Plus, SlidersHorizontal } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, NoteChip, Readout, ScreenHeader, freshnessLabel, freshnessTone } from "@/components/ui";
+import { Author } from "@/components/Author";
+import { ShareBadge } from "@/components/ShareGroups";
+import { useAuth } from "@/lib/auth";
 import { useBeans } from "@/data/beans";
 import { daysSince, type BeanVM } from "@/domain/view";
 
@@ -9,7 +12,7 @@ export const Route = createFileRoute("/beans/")({
   component: BeansPage,
 });
 
-function BeanCard({ bean: b, onClick }: { bean: BeanVM; onClick: () => void }) {
+function BeanCard({ bean: b, onClick, mine }: { bean: BeanVM; onClick?: () => void; mine: boolean }) {
   const days = daysSince(b.roastDate);
   const tone = freshnessTone(days);
   const barColor =
@@ -30,6 +33,7 @@ function BeanCard({ bean: b, onClick }: { bean: BeanVM; onClick: () => void }) {
                 Acabado
               </span>
             )}
+            {mine ? <ShareBadge count={b.sharedGroupIds.length} /> : <Author ownerId={b.ownerId} />}
           </div>
           <div className="tag mt-1">
             {b.country} · {b.process}
@@ -66,10 +70,14 @@ function BeanCard({ bean: b, onClick }: { bean: BeanVM; onClick: () => void }) {
 
 function BeansPage() {
   const { data: beans = [], isLoading } = useBeans({ includeFinished: true });
+  const { session } = useAuth();
   const navigate = useNavigate();
 
-  const available = beans.filter((b) => !b.finished);
-  const finished = beans.filter((b) => b.finished);
+  const uid = session?.user.id;
+  const mine = beans.filter((b) => b.ownerId === uid);
+  const shared = beans.filter((b) => b.ownerId !== uid);
+  const available = mine.filter((b) => !b.finished);
+  const finished = mine.filter((b) => b.finished);
   const open = (id: string) => navigate({ to: "/beans/$beanId/edit", params: { beanId: id } });
 
   return (
@@ -100,7 +108,7 @@ function BeansPage() {
         ) : (
           <div className="flex flex-col gap-3">
             {available.map((b) => (
-              <BeanCard key={b.id} bean={b} onClick={() => open(b.id)} />
+              <BeanCard key={b.id} bean={b} mine onClick={() => open(b.id)} />
             ))}
             {available.length === 0 && (
               <Card className="text-center text-sm text-muted">
@@ -112,7 +120,16 @@ function BeansPage() {
               <>
                 <div className="tag mt-2 px-1 text-faint">Acabados</div>
                 {finished.map((b) => (
-                  <BeanCard key={b.id} bean={b} onClick={() => open(b.id)} />
+                  <BeanCard key={b.id} bean={b} mine onClick={() => open(b.id)} />
+                ))}
+              </>
+            )}
+
+            {shared.length > 0 && (
+              <>
+                <div className="tag mt-2 px-1 text-faint">Compartidos conmigo</div>
+                {shared.map((b) => (
+                  <BeanCard key={b.id} bean={b} mine={false} />
                 ))}
               </>
             )}

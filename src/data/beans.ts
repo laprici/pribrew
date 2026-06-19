@@ -9,7 +9,10 @@ export function useBeans({ includeFinished = false }: { includeFinished?: boolea
   return useQuery({
     queryKey: ["beans", { includeFinished }],
     queryFn: async (): Promise<BeanVM[]> => {
-      let q = supabase.from("beans").select("*").eq("is_active", true);
+      let q = supabase
+        .from("beans")
+        .select("*, bean_shares(group_id)")
+        .eq("is_active", true);
       if (!includeFinished) q = q.is("finished_at", null);
       const { data, error } = await q.order("created_at", { ascending: false });
       if (error) throw error;
@@ -51,8 +54,11 @@ export function useUpdateBean() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<BeanInput> }): Promise<void> => {
-      const { error } = await supabase.from("beans").update(input).eq("id", id);
+      // .select() detecta el caso 0 filas: si el grano es de otro miembro del
+      // grupo, RLS deja leerlo pero bloquea el UPDATE — sin error, 0 filas.
+      const { data, error } = await supabase.from("beans").update(input).eq("id", id).select("id");
       if (error) throw error;
+      if (!data?.length) throw new Error("No puedes editar este grano: pertenece a otro miembro del grupo.");
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["beans"] }),
   });
@@ -82,8 +88,13 @@ export function useDeleteBean() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      const { error } = await supabase.from("beans").update({ is_active: false }).eq("id", id);
+      const { data, error } = await supabase
+        .from("beans")
+        .update({ is_active: false })
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      if (!data?.length) throw new Error("No puedes borrar este grano: pertenece a otro miembro del grupo.");
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["beans"] }),
   });

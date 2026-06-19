@@ -4,6 +4,7 @@ import type { GrinderInput } from "@/domain/grinder.schema";
 
 export type GrinderRow = {
   id: string;
+  ownerId: string;
   name: string;
   type: "manual" | "electric";
   brand: string | null;
@@ -12,10 +13,11 @@ export type GrinderRow = {
   min_setting: number | null;
   max_setting: number | null;
   unit_label: string | null;
+  sharedGroupIds: string[];
 };
 
 const GRINDER_SELECT =
-  "id, name, type, brand, model, setting_kind, min_setting, max_setting, unit_label";
+  "id, owner_id, name, type, brand, model, setting_kind, min_setting, max_setting, unit_label, grinder_shares(group_id)";
 
 export function useGrinders() {
   return useQuery({
@@ -27,7 +29,19 @@ export function useGrinders() {
         .eq("is_active", true)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as GrinderRow[];
+      return (data ?? []).map((r: any) => ({
+        id: r.id,
+        ownerId: r.owner_id,
+        name: r.name,
+        type: r.type,
+        brand: r.brand,
+        model: r.model,
+        setting_kind: r.setting_kind,
+        min_setting: r.min_setting,
+        max_setting: r.max_setting,
+        unit_label: r.unit_label,
+        sharedGroupIds: (r.grinder_shares ?? []).map((s: any) => s.group_id),
+      }));
     },
   });
 }
@@ -69,8 +83,11 @@ export function useUpdateGrinder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: Partial<GrinderInput> }): Promise<void> => {
-      const { error } = await supabase.from("grinders").update(input).eq("id", id);
+      // .select() detecta 0 filas: si el moledor es de otro miembro del grupo,
+      // RLS deja leerlo pero bloquea el UPDATE — sin error, 0 filas.
+      const { data, error } = await supabase.from("grinders").update(input).eq("id", id).select("id");
       if (error) throw error;
+      if (!data?.length) throw new Error("No puedes editar este moledor: pertenece a otro miembro del grupo.");
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["grinders"] }),
   });
@@ -81,8 +98,13 @@ export function useDeleteGrinder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      const { error } = await supabase.from("grinders").update({ is_active: false }).eq("id", id);
+      const { data, error } = await supabase
+        .from("grinders")
+        .update({ is_active: false })
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      if (!data?.length) throw new Error("No puedes borrar este moledor: pertenece a otro miembro del grupo.");
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["grinders"] }),
   });

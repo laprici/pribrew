@@ -4,6 +4,8 @@ import { Plus, Search, ListChecks, History } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Card, MethodBadge, ScreenHeader } from "@/components/ui";
 import { Author } from "@/components/Author";
+import { ShareBadge } from "@/components/ShareGroups";
+import { useAuth } from "@/lib/auth";
 import { useRecetas } from "@/data/recetas";
 import { useRecetaCounts } from "@/data/brews";
 
@@ -14,8 +16,10 @@ export const Route = createFileRoute("/recetas/")({
 function RecetasPage() {
   const { data: recetas = [], isLoading } = useRecetas();
   const { data: counts = {} } = useRecetaCounts();
+  const { session } = useAuth();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const uid = session?.user.id;
 
   // El nombre es el valor principal: filtramos por él (también por método).
   const filtered = useMemo(() => {
@@ -77,6 +81,7 @@ function RecetasPage() {
                           </span>
                         )}
                         <Author ownerId={r.ownerId} hideMine />
+                        {r.ownerId === uid && <ShareBadge count={r.sharedGroupIds.length} />}
                       </div>
                       <div className="truncate text-[18px] font-semibold tracking-[-0.02em]">
                         {r.name}

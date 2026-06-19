@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { PackageCheck, RotateCcw } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Field, TextInput, NumInput, Select, Pills, FormScaffold } from "@/components/form";
+import { ShareGroupsField } from "@/components/ShareGroups";
 import { beanSchema } from "@/domain/bean.schema";
 import {
   useBean,
@@ -11,6 +12,7 @@ import {
   useDeleteBean,
   useSetBeanFinished,
 } from "@/data/beans";
+import { useItemShares, useSetItemShares } from "@/data/shares";
 
 const PROCESS_OPTS = [
   { value: "washed", label: "Lavado" },
@@ -48,7 +50,11 @@ export function BeanForm({ beanId }: { beanId?: string }) {
   const updateBean = useUpdateBean();
   const deleteBean = useDeleteBean();
   const setFinished = useSetBeanFinished();
+  const setShares = useSetItemShares("bean");
+  const { data: existingShares } = useItemShares("bean", beanId);
   const finished = row?.finished_at != null;
+
+  const [shareGroups, setShareGroups] = useState<string[]>([]);
 
   const [name, setName] = useState("");
   const [roaster, setRoaster] = useState("");
@@ -79,6 +85,11 @@ export function BeanForm({ beanId }: { beanId?: string }) {
     setNotes(row.roaster_notes ?? "");
   }, [row]);
 
+  // Precargar los grupos con los que ya está compartido (en edición).
+  useEffect(() => {
+    if (existingShares) setShareGroups(existingShares);
+  }, [existingShares]);
+
   async function handleSave() {
     setErr(null);
     const parsed = beanSchema.safeParse({
@@ -99,8 +110,10 @@ export function BeanForm({ beanId }: { beanId?: string }) {
       return;
     }
     try {
-      if (editing) await updateBean.mutateAsync({ id: beanId!, input: parsed.data });
-      else await createBean.mutateAsync(parsed.data);
+      const id = editing
+        ? (await updateBean.mutateAsync({ id: beanId!, input: parsed.data }), beanId!)
+        : await createBean.mutateAsync(parsed.data);
+      await setShares.mutateAsync({ itemId: id, groupIds: shareGroups });
       navigate({ to: "/beans" });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "No se pudo guardar el grano.");
@@ -135,7 +148,7 @@ export function BeanForm({ beanId }: { beanId?: string }) {
         sub={editing ? "Inventario" : "Nuevo grano"}
         onBack={() => navigate({ to: "/beans" })}
         onSave={handleSave}
-        saving={createBean.isPending || updateBean.isPending}
+        saving={createBean.isPending || updateBean.isPending || setShares.isPending}
         error={err}
         onDelete={editing ? handleDelete : undefined}
         deleting={deleteBean.isPending}
@@ -219,6 +232,8 @@ export function BeanForm({ beanId }: { beanId?: string }) {
             style={{ fontFamily: "var(--font-display)" }}
           />
         </Field>
+
+        <ShareGroupsField value={shareGroups} onChange={setShareGroups} />
       </FormScaffold>
     </AppShell>
   );
